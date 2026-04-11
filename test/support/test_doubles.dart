@@ -7,11 +7,19 @@ import 'package:life_gacha/core/ids/id_generator.dart';
 import 'package:life_gacha/core/persistence/unit_of_work.dart';
 import 'package:life_gacha/core/random/random_int_source.dart';
 import 'package:life_gacha/core/result/result.dart';
+import 'package:life_gacha/features/achievements/domain/achievement.dart';
+import 'package:life_gacha/features/achievements/domain/achievement_repository.dart';
+import 'package:life_gacha/features/character/domain/character_profile.dart';
+import 'package:life_gacha/features/character/domain/character_repository.dart';
 import 'package:life_gacha/features/focus_sessions/application/focus_session_runtime_controller.dart';
 import 'package:life_gacha/features/focus_sessions/domain/focus_session.dart';
 import 'package:life_gacha/features/focus_sessions/domain/focus_session_repository.dart';
 import 'package:life_gacha/features/gacha/domain/gacha_draw.dart';
 import 'package:life_gacha/features/gacha/domain/gacha_repository.dart';
+import 'package:life_gacha/features/profile_stats/domain/activity_history_summary.dart';
+import 'package:life_gacha/features/profile_stats/domain/profile_stats_repository.dart';
+import 'package:life_gacha/features/profile_stats/domain/profile_stats_snapshot.dart';
+import 'package:life_gacha/features/profile_stats/domain/streak.dart';
 import 'package:life_gacha/features/reward_cards/domain/reward_card.dart';
 import 'package:life_gacha/features/reward_cards/domain/reward_card_repository.dart';
 import 'package:life_gacha/features/tasks/domain/task.dart';
@@ -44,6 +52,16 @@ final class SequentialIdGenerator implements IdGenerator {
 final class ImmediateUnitOfWork implements UnitOfWork {
   @override
   Future<T> runInTransaction<T>(Future<T> Function() action) {
+    return action();
+  }
+}
+
+final class RecordingUnitOfWork implements UnitOfWork {
+  int runInTransactionCalls = 0;
+
+  @override
+  Future<T> runInTransaction<T>(Future<T> Function() action) async {
+    runInTransactionCalls += 1;
     return action();
   }
 }
@@ -360,6 +378,186 @@ final class InMemoryGachaRepository implements GachaRepository {
   }
 }
 
+final class InMemoryCharacterRepository implements CharacterRepository {
+  InMemoryCharacterRepository(this._profile);
+
+  CharacterProfile _profile;
+  final StreamController<CharacterProfile> _controller =
+      StreamController<CharacterProfile>.broadcast();
+
+  @override
+  Stream<CharacterProfile> watchProfile() {
+    return Stream<CharacterProfile>.multi((streamController) {
+      streamController.add(_profile);
+      final subscription = _controller.stream.listen(streamController.add);
+      streamController.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Future<Result<CharacterProfile>> getProfile() async {
+    return Success(_profile);
+  }
+
+  @override
+  Future<Result<Unit>> save(CharacterProfile profile) async {
+    _profile = profile;
+    _controller.add(_profile);
+    return const Success(unit);
+  }
+
+  void dispose() {
+    _controller.close();
+  }
+}
+
+final class InMemoryAchievementRepository implements AchievementRepository {
+  InMemoryAchievementRepository([
+    Iterable<Achievement> initialAchievements = const [],
+  ]) : _achievements = [...initialAchievements];
+
+  List<Achievement> _achievements;
+  final StreamController<List<Achievement>> _controller =
+      StreamController<List<Achievement>>.broadcast();
+
+  @override
+  Stream<List<Achievement>> watchAchievements() {
+    return Stream<List<Achievement>>.multi((streamController) {
+      streamController.add(_sortedAchievements());
+      final subscription = _controller.stream.listen(streamController.add);
+      streamController.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Future<Result<List<Achievement>>> listAchievements() async {
+    return Success(_sortedAchievements());
+  }
+
+  @override
+  Future<Result<Unit>> saveAll(List<Achievement> achievements) async {
+    _achievements = [...achievements];
+    _controller.add(_sortedAchievements());
+    return const Success(unit);
+  }
+
+  void dispose() {
+    _controller.close();
+  }
+
+  List<Achievement> _sortedAchievements() {
+    final achievements = [..._achievements];
+    achievements.sort(
+      (left, right) =>
+          left.achievementType.index.compareTo(right.achievementType.index),
+    );
+    return achievements;
+  }
+}
+
+final class InMemoryProfileStatsRepository implements ProfileStatsRepository {
+  InMemoryProfileStatsRepository({
+    required this.snapshot,
+    this.streak = const Streak(currentStreak: 0, bestStreak: 0),
+    Iterable<ActivityHistoryItem> activityItems = const [],
+  }) : _activityItems = [...activityItems];
+
+  ProfileStatsSnapshot snapshot;
+  Streak streak;
+  final List<ActivityHistoryItem> _activityItems;
+  final StreamController<ProfileStatsSnapshot> _snapshotController =
+      StreamController<ProfileStatsSnapshot>.broadcast();
+  final StreamController<Streak> _streakController =
+      StreamController<Streak>.broadcast();
+
+  @override
+  Stream<ProfileStatsSnapshot> watchSnapshot() {
+    return Stream<ProfileStatsSnapshot>.multi((streamController) {
+      streamController.add(_currentSnapshot());
+      final subscription = _snapshotController.stream.listen(
+        streamController.add,
+      );
+      streamController.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Stream<Streak> watchStreak() {
+    return Stream<Streak>.multi((streamController) {
+      streamController.add(streak);
+      final subscription = _streakController.stream.listen(
+        streamController.add,
+      );
+      streamController.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Future<Result<ProfileStatsSnapshot>> getSnapshot() async {
+    return Success(_currentSnapshot());
+  }
+
+  @override
+  Future<Result<ActivityHistorySummary>> getActivityHistorySummary({
+    int limit = 20,
+  }) async {
+    final items = [..._activityItems];
+    items.sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
+    return Success(
+      ActivityHistorySummary(items: items.take(limit).toList(growable: false)),
+    );
+  }
+
+  @override
+  Future<Result<Streak>> getStreak() async {
+    return Success(streak);
+  }
+
+  @override
+  Future<Result<Unit>> saveStreak(Streak updatedStreak) async {
+    streak = updatedStreak;
+    _streakController.add(streak);
+    _snapshotController.add(_currentSnapshot());
+    return const Success(unit);
+  }
+
+  @override
+  Future<Result<int>> completedTaskCount() async {
+    return Success(snapshot.completedTasks);
+  }
+
+  @override
+  Future<Result<int>> completedFocusSessionCount() async {
+    return Success(snapshot.completedFocusSessions);
+  }
+
+  void setSnapshot(ProfileStatsSnapshot value) {
+    snapshot = value;
+    _snapshotController.add(_currentSnapshot());
+  }
+
+  void setActivityItems(Iterable<ActivityHistoryItem> items) {
+    _activityItems
+      ..clear()
+      ..addAll(items);
+  }
+
+  void dispose() {
+    _snapshotController.close();
+    _streakController.close();
+  }
+
+  ProfileStatsSnapshot _currentSnapshot() {
+    return ProfileStatsSnapshot(
+      completedTasks: snapshot.completedTasks,
+      completedFocusSessions: snapshot.completedFocusSessions,
+      accumulatedPoints: snapshot.accumulatedPoints,
+      characterLevel: snapshot.characterLevel,
+      streak: streak,
+    );
+  }
+}
+
 final class InMemoryFocusSessionRepository implements FocusSessionRepository {
   InMemoryFocusSessionRepository([
     Iterable<FocusSession> initialSessions = const [],
@@ -469,6 +667,11 @@ final class FakeFocusSessionRuntimeController
   bool ensureStartedCalled = false;
   String? lastStartedTaskId;
   int? lastStartedPlannedMinutes;
+  int pauseCalls = 0;
+  int resumeCalls = 0;
+  int stopCalls = 0;
+  int completeCalls = 0;
+  int failCalls = 0;
 
   @override
   Stream<FocusSessionRuntimeState> get states => _controller.stream;
@@ -493,6 +696,7 @@ final class FakeFocusSessionRuntimeController
 
   @override
   Future<Result<Unit>> pause() async {
+    pauseCalls += 1;
     if (pauseResult.isSuccess) {
       _controller.add(FocusSessionRuntimeState.paused);
     }
@@ -501,6 +705,7 @@ final class FakeFocusSessionRuntimeController
 
   @override
   Future<Result<Unit>> resume() async {
+    resumeCalls += 1;
     if (resumeResult.isSuccess) {
       _controller.add(FocusSessionRuntimeState.active);
     }
@@ -509,6 +714,7 @@ final class FakeFocusSessionRuntimeController
 
   @override
   Future<Result<Unit>> stopEarly() async {
+    stopCalls += 1;
     if (stopResult.isSuccess) {
       _controller.add(FocusSessionRuntimeState.cancelled);
     }
@@ -517,6 +723,7 @@ final class FakeFocusSessionRuntimeController
 
   @override
   Future<Result<Unit>> completeByTimer() async {
+    completeCalls += 1;
     if (completeResult.isSuccess) {
       _controller.add(FocusSessionRuntimeState.completed);
     }
@@ -525,6 +732,7 @@ final class FakeFocusSessionRuntimeController
 
   @override
   Future<Result<Unit>> failForLifecycleViolation() async {
+    failCalls += 1;
     if (failResult.isSuccess) {
       _controller.add(FocusSessionRuntimeState.failed);
     }

@@ -75,15 +75,10 @@ final class GachaController {
       ),
     );
 
-    List<GachaDrawResultItem>? lastResults;
-    result.fold(
-      onSuccess: (draw) {
-        lastResults = <GachaDrawResultItem>[GachaDrawResultItem.fromDraw(draw)];
-      },
-      onFailure: (_) {
-        lastResults = null;
-      },
-    );
+    final draw = result.valueOrNull;
+    final lastResults = draw == null
+        ? null
+        : await _resolveDrawResults(<GachaDraw>[draw]);
 
     _finishMutation(feedback: feedback, lastResults: lastResults);
     return lastResults;
@@ -103,23 +98,17 @@ final class GachaController {
       ),
     );
 
-    List<GachaDrawResultItem>? lastResults;
-    result.fold(
-      onSuccess: (draws) {
-        lastResults = draws
-            .map(GachaDrawResultItem.fromDraw)
-            .toList(growable: false);
-      },
-      onFailure: (_) {
-        lastResults = null;
-      },
-    );
+    final draws = result.valueOrNull;
+    final lastResults = draws == null ? null : await _resolveDrawResults(draws);
 
     _finishMutation(feedback: feedback, lastResults: lastResults);
     return lastResults;
   }
 
-  void refresh() => _ref.invalidate(_gachaBaseStateProvider);
+  Future<void> refresh() async {
+    _ref.invalidate(_gachaBaseStateProvider);
+    await _ref.read(_gachaBaseStateProvider.future);
+  }
 
   void clearFeedback() {
     _ref.read(gachaActionFeedbackProvider.notifier).state = null;
@@ -157,6 +146,39 @@ final class GachaController {
         lastResults ?? const <GachaDrawResultItem>[];
     refresh();
   }
+
+  Future<List<GachaDrawResultItem>> _resolveDrawResults(
+    List<GachaDraw> draws,
+  ) async {
+    final unlockedCardsResult = await _ref
+        .read(listUnlockedRewardCardsUseCaseProvider)
+        .call();
+    final unlockedCards = unlockedCardsResult.valueOrNull;
+    if (unlockedCards == null) {
+      return draws
+          .map(
+            (draw) => GachaDrawResultItem.fromDraw(
+              draw,
+              rewardContent: draw.rewardCardId,
+              rewardStatus: RewardCardStatus.drawn,
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    final cardsById = {for (final card in unlockedCards) card.id: card};
+
+    return draws
+        .map((draw) {
+          final rewardCard = cardsById[draw.rewardCardId];
+          return GachaDrawResultItem.fromDraw(
+            draw,
+            rewardContent: rewardCard?.content ?? draw.rewardCardId,
+            rewardStatus: rewardCard?.status ?? RewardCardStatus.drawn,
+          );
+        })
+        .toList(growable: false);
+  }
 }
 
 enum GachaActionType { singleDraw, tenDraw }
@@ -180,26 +202,36 @@ final class GachaDrawResultItem {
   const GachaDrawResultItem({
     required this.drawId,
     required this.rewardCardId,
+    required this.rewardContent,
     required this.rolledRarity,
     required this.costPoints,
     required this.drawType,
+    required this.rewardStatus,
   });
 
-  factory GachaDrawResultItem.fromDraw(GachaDraw draw) {
+  factory GachaDrawResultItem.fromDraw(
+    GachaDraw draw, {
+    required String rewardContent,
+    required RewardCardStatus rewardStatus,
+  }) {
     return GachaDrawResultItem(
       drawId: draw.id,
       rewardCardId: draw.rewardCardId,
+      rewardContent: rewardContent,
       rolledRarity: draw.rolledRarity,
       costPoints: draw.costPoints,
       drawType: draw.drawType,
+      rewardStatus: rewardStatus,
     );
   }
 
   final String drawId;
   final String rewardCardId;
+  final String rewardContent;
   final RewardRarity rolledRarity;
   final int costPoints;
   final GachaDrawType drawType;
+  final RewardCardStatus rewardStatus;
 }
 
 final class GachaViewState {

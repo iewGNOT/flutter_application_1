@@ -136,7 +136,10 @@ final class RewardCardsController {
     return result;
   }
 
-  void refresh() => _ref.invalidate(_rewardCardsBaseStateProvider);
+  Future<void> refresh() async {
+    _ref.invalidate(_rewardCardsBaseStateProvider);
+    await _ref.read(_rewardCardsBaseStateProvider.future);
+  }
 
   void clearFeedback() {
     _ref.read(rewardCardsActionFeedbackProvider.notifier).state = null;

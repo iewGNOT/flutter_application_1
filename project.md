@@ -23,9 +23,14 @@ The product vision is to combine productivity mechanics with game-inspired motiv
 Current implementation status:
 - Phase 1 is complete
 - Phase 2 is complete
-- Phase 3 is in progress
+- Phase 3 is complete
 - Phase 3 Batch 1 is complete: presentation controllers/providers now exist and are wired to real use cases
-- The actual product screens are still mostly shell pages and need migration to real UI flows
+- Phase 3 Batch 2 is complete: dashboard, tasks, reward cards, and profile/stats/character screens now use real Riverpod-driven UI
+- Phase 3 Batch 3 is complete: the focus-session runtime screen now uses persisted session state, runtime controls, and recent persisted result history
+- Phase 3 Batch 4 is complete: the gacha screen now uses real preview state, draw actions, result presentation, and failure messaging
+- Phase 3 Batch 5 is complete: shared async/loading/error/empty widgets now back the implemented screens with minimal refresh cleanup
+- Phase 3 Batch 6 is complete: broader deterministic test coverage and final cleanup now cover the remaining planned gaps
+- Remaining major work is optional future hardening outside the completed Phase 3 batch plan
 
 ---
 
@@ -140,26 +145,38 @@ The architecture should remain extensible for future additions such as:
   - profile stats
   - character
   - achievements
+- Phase 3 Batch 2 screen implementations for:
+  - dashboard
+  - tasks
+  - reward cards
+  - profile / stats / character
+- Phase 3 Batch 3 screen implementation for:
+  - focus session runtime
+- Phase 3 Batch 4 screen implementation for:
+  - gacha draw
+- feature-local presentation widgets for Batch 2 screens
+- feature-local presentation widgets for Batch 3 focus-session runtime UI
+- feature-local presentation widgets for Batch 4 gacha preview and result UI
+- shared app-level async/loading/error/empty widgets under `lib/app/widgets`
+- Batch 5 page and section migrations to reuse the shared state widgets
+- Batch 5 pull-to-refresh correctness cleanup for implemented async screens
+- Batch 6 deterministic domain/use-case tests for focus, gacha, reward-card, character growth, streak, and achievement rules
+- Batch 6 Drift database and repository tests for seed data, transaction rollback, task persistence, and profile-stats derivation
+- Batch 6 integration-style MVP flow tests covering focus completion, reward draw depletion, and restart recovery
 - targeted controller tests for tasks, gacha, and focus-session presentation wiring
+- targeted widget tests for dashboard, tasks, reward cards, and profile screens
+- targeted widget tests for the focus-session runtime screen
+- targeted widget tests for the gacha screen
 
 ### Partially done
-- presentation-layer state wiring exists, but pages still use placeholder shell UI
-- theme and routing are usable but minimal
-- the test suite exists, but coverage is still far from the planned MVP depth
+- theme and routing are usable and intentionally minimal
+- the test suite is now materially broader, but platform-specific and polish-focused coverage can still expand later
 
 ### Still placeholder / shell-only
-- `lib/features/dashboard/presentation/pages/dashboard_page.dart`
-- `lib/features/tasks/presentation/pages/tasks_page.dart`
-- `lib/features/focus_sessions/presentation/pages/focus_session_page.dart`
-- `lib/features/reward_cards/presentation/pages/reward_cards_page.dart`
-- `lib/features/gacha/presentation/pages/gacha_draw_page.dart`
-- `lib/features/profile_stats/presentation/pages/profile_stats_page.dart`
 - `lib/features/wallet/presentation/controllers/wallet_controller.dart` (if still present and unused in the current UI flow)
 
 ### Not started yet
-- reusable presentation widgets planned in Phase 3
 - polished screen implementations and transitions
-- widget tests for real screens
 - repository/database test suite
 - end-to-end integration tests
 - final platform/setup notes and run instructions
@@ -188,6 +205,21 @@ The architecture should remain extensible for future additions such as:
 - Batch 1 presentation state wiring
 - Riverpod-backed controllers/providers replacing placeholder controller logic
 - controller-level tests using deterministic in-memory fakes
+- Batch 2 non-runtime product screens
+- Batch 2 feature-local presentation widgets
+- Batch 2 widget tests for implemented screens
+- Batch 3 focus-session runtime screen
+- Batch 3 persisted-session and recent-session presentation mapping
+- Batch 3 widget tests for the focus-session runtime screen
+- Batch 4 gacha screen
+- Batch 4 draw-result presentation mapping with reward content
+- Batch 4 widget tests for the gacha screen
+- Batch 5 shared reusable widgets
+- Batch 5 async/loading/error/empty state extraction
+- Batch 5 refresh-flow cleanup for implemented screens
+- Batch 6 broader deterministic tests
+- Batch 6 repository/database coverage
+- Batch 6 integration-style MVP flow coverage
 
 ---
 
@@ -197,20 +229,37 @@ The architecture should remain extensible for future additions such as:
   - real Riverpod presentation controllers/providers
   - controller tests for tasks, gacha, and focus sessions
 
-- Batch 2: pending
+- Batch 2: completed
   - dashboard, tasks, reward cards, and profile/stats screens
+  - feature-local presentation widgets for those screens
+  - widget tests for those screens
 
-- Batch 3: pending
+- Batch 3: completed
   - focus session runtime screen
+  - pause / resume / stop / complete / failure UI
+  - persisted session state driven UI
+  - recent persisted session result history for restart-safe recovery visibility
 
-- Batch 4: pending
+- Batch 4: completed
   - gacha screen and result flows
+  - preview state
+  - single draw
+  - ten draw
+  - result presentation flows
+  - failure messaging
 
-- Batch 5: pending
-  - shared widgets + routing/theme cleanup
+- Batch 5: completed
+  - shared reusable widgets under `lib/app/widgets`
+  - async / loading / error / empty state components
+  - page and section adoption where existing duplication proved the pattern
+  - minor refresh callback cleanup for implemented async screens
+  - no routing or theme changes were needed after inspection
 
-- Batch 6: pending
-  - broader tests and final cleanup
+- Batch 6: completed
+  - broader deterministic tests for domain rules and workflows
+  - Drift database and repository coverage
+  - integration-style MVP flow coverage
+  - minimal final cleanup limited to test support additions
 
 ---
 
@@ -265,6 +314,9 @@ Already reflected in the repo:
    Reason: using `watch` caused self-invalidation circular dependency issues when controllers refreshed those providers.
 
 7. Placeholder page files still depend on temporary compatibility methods from the controllers so the shell UI can compile until the real screen migrations are done.
+
+8. `CharacterViewState` includes optional cosmetic fields (`skinState`, `bodyType`) from the domain model.
+   Reason: the profile/stats screen now renders those existing modeled fields through the presentation boundary.
 
 ---
 
@@ -436,161 +488,80 @@ Inspect these first when resuming work:
 
 ### Important current nuance
 - the presentation controllers are active
-- the presentation pages are not yet fully migrated to those controllers/providers and still use temporary compatibility logic
+- dashboard, tasks, reward cards, and profile/stats pages are migrated to controller/provider-driven UI
+- focus-session page is migrated to controller/provider-driven runtime UI
+- gacha page is migrated to controller/provider-driven draw UI
 
 ---
 
 ## 12. Remaining Work
 
-Still to build:
+No required Phase 3 work remains in the current batch plan.
 
-- real Home Dashboard screen
-- real Tasks screen with add / edit / delete / start-focus flows
-- real Reward Cards screen with available / unlocked groupings and editing restrictions
-- real Profile / Stats / Character screen
-- real Focus Session screen with runtime UI, pause / resume / stop / complete / failure states
-- real Gacha screen with preview, actions, and result presentation
-- reusable presentation widgets and async / error / empty states
-- theme cleanup and minor routing cleanup only if actually needed
-- broader test suite:
-  - domain / policy tests
-  - repository / database tests
-  - widget tests
-  - integration tests
-- final cleanup, platform notes, and run instructions
+Optional future hardening beyond Phase 3:
+
+- additional widget coverage for timer-state ticking, dashboard refresh behavior, and destructive UI flows
+- platform-specific encrypted database opener tests and migration-path tests
+- extra integration coverage for longer multi-day progression scenarios
+- platform notes and run instructions polish if needed for distribution
 
 ---
 
 ## 13. Recommended Next Steps
 
-### Batch 2: Dashboard / Tasks / Reward Cards / Profile screens
-- Goal: replace the shell pages with real Riverpod-driven UI for the non-runtime screens.
-- Likely files to update/create:
-  - `lib/features/dashboard/presentation/pages/dashboard_page.dart`
-  - `lib/features/tasks/presentation/pages/tasks_page.dart`
-  - `lib/features/reward_cards/presentation/pages/reward_cards_page.dart`
-  - `lib/features/profile_stats/presentation/pages/profile_stats_page.dart`
-  - optional widgets under `lib/app/widgets/` and feature `presentation/widgets/`
-- Dependencies:
-  - existing Batch 1 controllers/providers
-  - current app router
-  - `FailureMessageMapper`
-- Verification:
-  - format changed files
-  - `flutter analyze`
-  - add widget tests for these screens / flows
-  - run relevant widget tests
+Phase 3 is complete.
 
-### Batch 3: Focus Session runtime screen
-- Goal: implement the real focus-session UI around the runtime controller and persisted session state.
-- Likely files to update/create:
-  - `lib/features/focus_sessions/presentation/pages/focus_session_page.dart`
-  - `lib/features/focus_sessions/presentation/widgets/*`
-- Dependencies:
-  - `FocusSessionController`
-  - runtime controller / lifecycle-aware session orchestration
-  - focus use cases and lifecycle rules
-- Verification:
-  - `flutter analyze`
-  - widget tests for timer / status / control updates
-  - targeted tests for runtime state mapping if needed
-
-### Batch 4: Gacha screen and result flows
-- Goal: migrate the gacha page to real preview state, draw actions, and result UI.
-- Likely files to update/create:
-  - `lib/features/gacha/presentation/pages/gacha_draw_page.dart`
-  - `lib/features/gacha/presentation/widgets/*`
-- Dependencies:
-  - `GachaController`
-  - reward-card availability rules
-- Verification:
-  - `flutter analyze`
-  - widget tests for single draw / ten draw / failure messaging
-
-### Batch 5: Shared widgets + routing/theme cleanup
-- Goal: extract patterns only after at least two screens prove them.
-- Likely files to update/create:
-  - `lib/app/widgets/app_async_view.dart`
-  - `lib/app/widgets/app_error_state.dart`
-  - `lib/app/widgets/app_empty_state.dart`
-  - `lib/app/theme/app_theme.dart`
-  - `lib/app/routing/app_router.dart` only if a minimal route addition is actually needed
-- Dependencies:
-  - completed screen implementations from earlier batches
-- Verification:
-  - `flutter analyze`
-  - full widget test pass
-
-### Batch 6: Tests and final cleanup
-- Goal: close the remaining policy / repository / widget / integration test gaps and remove leftover placeholder code.
-- Likely files to create/update:
-  - `test/features/...`
-  - `integration_test/...` if added
-  - any placeholder page/controller compatibility shims no longer needed
-- Dependencies:
-  - completed screens and shared widgets
-- Verification:
-  - run build runner if persistence schema changed
-  - `flutter analyze`
-  - `flutter test`
-  - integration tests if added
+If work continues later, prefer small follow-up slices that expand platform notes, migration coverage, or additional widget/integration depth without redesigning the existing architecture.
 
 ---
 
 ## 14. Testing / Verification Status
 
 ### Tests currently present
+- `test/app/widgets/app_async_value_view_test.dart`
+- `test/core/persistence/life_gacha_database_test.dart`
+- `test/core/persistence/drift_unit_of_work_test.dart`
+- `test/features/focus_sessions/application/focus_session_use_cases_test.dart`
 - `test/widget_test.dart`
+- `test/features/achievements/application/achievement_use_cases_test.dart`
+- `test/features/character/domain/character_growth_policy_test.dart`
+- `test/features/gacha/application/gacha_use_cases_test.dart`
+- `test/features/gacha/domain/rarity_distribution_policy_test.dart`
+- `test/features/profile_stats/application/update_daily_streak_use_case_test.dart`
+- `test/features/profile_stats/data/drift_profile_stats_repository_test.dart`
+- `test/features/reward_cards/application/reward_card_use_cases_test.dart`
+- `test/features/tasks/data/drift_task_repository_test.dart`
 - `test/features/tasks/presentation/controllers/tasks_controller_test.dart`
 - `test/features/gacha/presentation/controllers/gacha_controller_test.dart`
+- `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
 - `test/features/focus_sessions/presentation/controllers/focus_session_controller_test.dart`
+- `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+- `test/integration/phase3_mvp_flows_test.dart`
 - shared deterministic fakes in `test/support/test_doubles.dart`
 
 ### Current verified status
-- `flutter analyze` passed after Batch 1
-- targeted tests passed:
-  - tasks controller test
-  - gacha controller tests
-  - focus-session controller tests
-  - shell widget test
+- `flutter analyze` passed after Batch 6
+- targeted Batch 6 tests passed:
+  - `test/app/widgets/app_async_value_view_test.dart`
+  - `test/core/persistence/life_gacha_database_test.dart`
+  - `test/core/persistence/drift_unit_of_work_test.dart`
+  - `test/features/focus_sessions/application/focus_session_use_cases_test.dart`
+  - `test/features/achievements/application/achievement_use_cases_test.dart`
+  - `test/features/character/domain/character_growth_policy_test.dart`
+  - `test/features/gacha/application/gacha_use_cases_test.dart`
+  - `test/features/gacha/domain/rarity_distribution_policy_test.dart`
+  - `test/features/profile_stats/application/update_daily_streak_use_case_test.dart`
+  - `test/features/profile_stats/data/drift_profile_stats_repository_test.dart`
+  - `test/features/reward_cards/application/reward_card_use_cases_test.dart`
+  - `test/features/tasks/data/drift_task_repository_test.dart`
+  - `test/integration/phase3_mvp_flows_test.dart`
+- full `flutter test` suite passed after Batch 6 on 2026-04-12
 
-### Tests still needed
+### Additional coverage that could still expand later
 
-#### Focus rules
-- one-pause-only
-- background invalidation
-- no points when stopped early
-- correct points formula
-
-#### Gacha rules
-- draw cost enforcement
-- rarity normalization and roll logic
-
-#### Reward rules
-- reward card edit restriction
-
-#### Character / stats rules
-- character growth mapping
-- streak progression
-- achievement unlocking
-
-#### Repository / database
-- encrypted DB initialization
-- migration behavior
-- CRUD persistence correctness
-- transaction rollback correctness
-
-#### Widget
-- timer page state updates
-- task add / edit / delete flows
-- gacha result rendering
-- dashboard refresh
-
-#### Integration
-- create task -> focus -> complete -> points awarded
-- create rewards -> draw -> reward becomes unavailable
-- activity completion -> character update
-- restart app -> persisted state present and interrupted session recovered as failed
+- encrypted opener and migration-path tests against platform-specific database startup paths
+- more widget-level refresh/timer/deletion/archive regression cases
+- longer-running multi-day integration scenarios
 
 ### Commands to run after changes
 
@@ -598,3 +569,125 @@ Still to build:
 & "$env:flutter\dart.bat" format <files>
 & "$env:flutter\flutter.bat" analyze
 & "$env:flutter\flutter.bat" test
+```
+
+---
+
+## 15. Update Log
+
+### 2026-04-12 - Phase 3 Batch 2 completed
+
+Implemented the non-runtime product screens without changing the existing architecture:
+
+- Replaced the dashboard placeholder with a real summary screen driven by `dashboardViewStateProvider`
+- Replaced the tasks placeholder with add/edit/delete/complete/start-focus flows driven by `TasksController`
+- Added the minimal corrective refactor `TasksController.completeTask()` so the UI can reach the already-existing completion use case
+- Replaced the reward cards placeholder with available/unlocked sections, create/edit/archive flows, and immutable-rarity UI
+- Replaced the profile placeholder with stats, character, achievements, and activity sections driven by the existing read-model controllers
+- Added feature-local presentation widgets to keep the Batch 2 pages small and composable
+- Added targeted Batch 2 widget tests for dashboard, tasks, reward cards, and profile screens
+- Extended `CharacterViewState` to include the existing optional cosmetic fields from the domain model so the profile screen can render them through the controller boundary
+
+Verification completed:
+
+- Code generation: not needed for Batch 2
+- `flutter analyze`: passed on 2026-04-12
+- Relevant tests: passed on 2026-04-12
+  - `test/widget_test.dart`
+  - `test/features/dashboard/presentation/pages/dashboard_page_test.dart`
+  - `test/features/tasks/presentation/controllers/tasks_controller_test.dart`
+  - `test/features/tasks/presentation/pages/tasks_page_test.dart`
+  - `test/features/reward_cards/presentation/pages/reward_cards_page_test.dart`
+  - `test/features/profile_stats/presentation/pages/profile_stats_page_test.dart`
+
+### 2026-04-12 - Phase 3 Batch 3 completed
+
+Implemented the focus-session runtime screen without changing the existing architecture:
+
+- Replaced the focus-session placeholder page with a real runtime UI driven by `focusSessionViewStateProvider`
+- Added active/paused/idle runtime presentation with pause, resume, stop-early, and complete controls
+- Kept the timer display presentation-derived from persisted session state instead of making widget-local time the source of truth
+- Added a minimal read-only `GetRecentFocusSessionsUseCase` so the screen can show recent persisted outcomes, including restart-recovered failed sessions
+- Added feature-local focus-session widgets to keep the page small and composable
+- Expanded focus-session tests to cover recent persisted-session mapping and widget-level runtime rendering/action wiring
+
+Verification completed:
+
+- Code generation: not needed for Batch 3
+- `flutter analyze`: passed on 2026-04-12
+- Relevant tests: passed on 2026-04-12
+  - `test/features/focus_sessions/presentation/controllers/focus_session_controller_test.dart`
+  - `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+
+### 2026-04-12 - Phase 3 Batch 4 completed
+
+Implemented the gacha screen without changing the existing architecture:
+
+- Replaced the gacha placeholder page with a real preview screen driven by `gachaViewStateProvider`
+- Added single-draw and ten-draw actions wired to the existing use cases
+- Added result presentation flow with dialog-based draw results and inline latest-result summary
+- Added failure messaging through controller feedback and friendly snackbar presentation
+- Extended `GachaDrawResultItem` mapping so presentation results include reward content and unlocked status, using existing reward-card read use cases rather than bypassing architectural boundaries
+- Added feature-local gacha widgets to keep the page small and composable
+- Expanded gacha tests to cover ten-draw result mapping and widget-level preview/result rendering
+
+Verification completed:
+
+- Code generation: not needed for Batch 4
+- `flutter analyze`: passed on 2026-04-12
+- Relevant tests: passed on 2026-04-12
+  - `test/features/gacha/presentation/controllers/gacha_controller_test.dart`
+  - `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
+
+### 2026-04-12 - Phase 3 Batch 5 completed
+
+Implemented shared reusable UI state widgets without redesigning the existing page architecture:
+
+- Added shared app-level `AppAsyncValueView`, `AppLoadingState`, `AppErrorState`, and `AppEmptyState` widgets under `lib/app/widgets`
+- Migrated the implemented dashboard, tasks, reward cards, focus-session, gacha, and profile screens to reuse the shared loading/error patterns
+- Reused the shared empty-state widget where multiple existing screens and sections already proved the pattern
+- Added a minimal corrective refactor so implemented pull-to-refresh flows can await the actual provider reload instead of completing immediately
+- Kept routing and theme unchanged after inspection because no Batch 5 cleanup was justified by the current repo state
+
+Verification completed:
+
+- Code generation: not needed for Batch 5
+- `flutter analyze`: passed on 2026-04-12
+- Relevant tests: passed on 2026-04-12
+  - `test/app/widgets/app_async_value_view_test.dart`
+  - `test/widget_test.dart`
+  - `test/features/dashboard/presentation/pages/dashboard_page_test.dart`
+  - `test/features/tasks/presentation/pages/tasks_page_test.dart`
+  - `test/features/reward_cards/presentation/pages/reward_cards_page_test.dart`
+  - `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+  - `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
+  - `test/features/profile_stats/presentation/pages/profile_stats_page_test.dart`
+
+### 2026-04-12 - Phase 3 Batch 6 completed
+
+Implemented broader tests and final cleanup without changing the production architecture:
+
+- Added deterministic focus-session use-case tests covering one-pause-only behavior, background invalidation, zero-point early stop, and configured completion rewards
+- Added deterministic gacha, reward-card, character-growth, streak, and achievement tests for the remaining documented business rules
+- Added a small memory-DB test helper plus Drift database/repository tests covering startup seed data, transaction rollback, task persistence, and profile-stats derivation
+- Added integration-style MVP flow tests covering task -> focus -> complete, reward creation -> draw depletion, and restart recovery
+- Limited cleanup to test-support additions only; no production routing/theme redesign or batch-external refactor was needed
+
+Verification completed:
+
+- Code generation: not needed for Batch 6
+- `flutter analyze`: passed on 2026-04-12
+- Relevant targeted tests: passed on 2026-04-12
+  - `test/features/focus_sessions/application/focus_session_use_cases_test.dart`
+  - `test/features/gacha/application/gacha_use_cases_test.dart`
+  - `test/features/gacha/domain/rarity_distribution_policy_test.dart`
+  - `test/features/reward_cards/application/reward_card_use_cases_test.dart`
+  - `test/features/character/domain/character_growth_policy_test.dart`
+  - `test/features/achievements/application/achievement_use_cases_test.dart`
+  - `test/features/profile_stats/application/update_daily_streak_use_case_test.dart`
+  - `test/core/persistence/life_gacha_database_test.dart`
+  - `test/core/persistence/drift_unit_of_work_test.dart`
+  - `test/features/tasks/data/drift_task_repository_test.dart`
+  - `test/features/profile_stats/data/drift_profile_stats_repository_test.dart`
+  - `test/integration/phase3_mvp_flows_test.dart`
+- Full `flutter test` suite: passed on 2026-04-12

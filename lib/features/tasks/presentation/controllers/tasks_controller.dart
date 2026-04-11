@@ -108,6 +108,24 @@ final class TasksController {
     return result;
   }
 
+  Future<Result<Task>> completeTask(String taskId) async {
+    _startMutation();
+    final result = await _ref.read(completeTaskUseCaseProvider).call(taskId);
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const TasksActionFeedback(
+          type: TasksActionType.completed,
+          message: 'Task completed.',
+        ),
+        onFailure: (failure) => TasksActionFeedback.error(
+          type: TasksActionType.completed,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
   Future<Result<Unit>> startFocusSession({
     required String taskId,
     required int plannedMinutes,
@@ -135,6 +153,11 @@ final class TasksController {
     _ref.read(tasksActionFeedbackProvider.notifier).state = null;
   }
 
+  Future<void> refresh() async {
+    _ref.invalidate(_taskListProvider);
+    await _ref.read(_taskListProvider.future);
+  }
+
   TasksViewState placeholderState() {
     return const TasksViewState(
       activeTaskCount: 0,
@@ -154,7 +177,7 @@ final class TasksController {
   }
 }
 
-enum TasksActionType { created, updated, deleted, focusStarted }
+enum TasksActionType { created, updated, deleted, completed, focusStarted }
 
 final class TasksActionFeedback {
   const TasksActionFeedback({

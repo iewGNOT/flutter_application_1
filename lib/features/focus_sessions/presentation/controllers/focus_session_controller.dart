@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../../../app/di/app_providers.dart';
 import '../../../../app/di/use_case_providers.dart';
+import '../../../../core/config/domain_enums.dart';
 import '../../../../core/error/failure_message_mapper.dart';
 import '../../../../core/result/result.dart';
 import '../../application/focus_session_runtime_controller.dart';
@@ -59,9 +60,18 @@ final class FocusSessionController {
       throw currentSessionResult.failureOrNull!;
     }
 
+    final recentSessionsResult = await _ref
+        .read(getRecentFocusSessionsUseCaseProvider)
+        .call();
+    final recentSessions = recentSessionsResult.valueOrNull;
+    if (recentSessions == null) {
+      throw recentSessionsResult.failureOrNull!;
+    }
+
     final session = currentSessionResult.valueOrNull;
     return FocusSessionViewState.fromSession(
       session: session,
+      recentSessions: recentSessions,
       runtimeState: session == null
           ? FocusSessionRuntimeState.idle
           : _ref
@@ -193,7 +203,10 @@ final class FocusSessionController {
     return result;
   }
 
-  void refresh() => _ref.invalidate(_focusSessionBaseStateProvider);
+  Future<void> refresh() async {
+    _ref.invalidate(_focusSessionBaseStateProvider);
+    await _ref.read(_focusSessionBaseStateProvider.future);
+  }
 
   void clearFeedback() {
     _ref.read(focusSessionActionFeedbackProvider.notifier).state = null;
@@ -206,6 +219,7 @@ final class FocusSessionController {
       isRunning: false,
       runtimeState: FocusSessionRuntimeState.idle,
       currentSession: null,
+      recentSessions: <FocusSession>[],
       isMutating: false,
     );
   }
@@ -267,12 +281,14 @@ final class FocusSessionViewState {
     required this.isRunning,
     required this.runtimeState,
     required this.currentSession,
+    required this.recentSessions,
     required this.isMutating,
     this.lastFeedback,
   });
 
   factory FocusSessionViewState.fromSession({
     required FocusSession? session,
+    required List<FocusSession> recentSessions,
     required FocusSessionRuntimeState runtimeState,
   }) {
     return FocusSessionViewState(
@@ -281,6 +297,7 @@ final class FocusSessionViewState {
       isRunning: runtimeState == FocusSessionRuntimeState.active,
       runtimeState: runtimeState,
       currentSession: session,
+      recentSessions: recentSessions,
       isMutating: false,
     );
   }
@@ -290,10 +307,86 @@ final class FocusSessionViewState {
   final bool isRunning;
   final FocusSessionRuntimeState runtimeState;
   final FocusSession? currentSession;
+  final List<FocusSession> recentSessions;
   final bool isMutating;
   final FocusSessionActionFeedback? lastFeedback;
 
   bool get hasActiveSession => currentSession != null;
+  FocusSession? get latestTerminalSession {
+    for (final session in recentSessions) {
+      if (session.isTerminal) {
+        return session;
+      }
+    }
+    return null;
+  }
+
+  int elapsedSecondsAt(DateTime now) {
+    final session = currentSession;
+    if (session == null) {
+      return 0;
+    }
+    if (session.status != FocusSessionStatus.active) {
+      return session.actualElapsedSeconds;
+    }
+
+    final additionalSeconds = now
+        .toUtc()
+        .difference(session.lastStateChangedAt)
+        .inSeconds;
+    return session.actualElapsedSeconds +
+        (additionalSeconds < 0 ? 0 : additionalSeconds);
+  }
+
+  int remainingSecondsAt(DateTime now) {
+    final session = currentSession;
+    if (session == null) {
+      return 0;
+    }
+
+    final remaining = session.plannedSeconds - elapsedSecondsAt(now);
+    return remaining <= 0 ? 0 : remaining;
+  }
+
+  double progressAt(DateTime now) {
+    final session = currentSession;
+    if (session == null) {
+      return 0;
+    }
+    if (session.plannedSeconds <= 0) {
+      return 0;
+    }
+
+    final progress = elapsedSecondsAt(now) / session.plannedSeconds;
+    if (progress <= 0) {
+      return 0;
+    }
+    if (progress >= 1) {
+      return 1;
+    }
+    return progress;
+  }
+
+  bool canPauseAt(DateTime now) {
+    return currentSession != null &&
+        runtimeState == FocusSessionRuntimeState.active &&
+        !pauseUsed &&
+        remainingSecondsAt(now) > 0;
+  }
+
+  bool get canResume =>
+      currentSession != null && runtimeState == FocusSessionRuntimeState.paused;
+
+  bool get canStop =>
+      currentSession != null &&
+      (runtimeState == FocusSessionRuntimeState.active ||
+          runtimeState == FocusSessionRuntimeState.paused);
+
+  bool canCompleteAt(DateTime now) {
+    return currentSession != null &&
+        runtimeState == FocusSessionRuntimeState.active &&
+        remainingSecondsAt(now) == 0;
+  }
 
   FocusSessionViewState copyWith({
     int? plannedMinutes,
@@ -302,6 +395,7 @@ final class FocusSessionViewState {
     FocusSessionRuntimeState? runtimeState,
     FocusSession? currentSession,
     bool clearCurrentSession = false,
+    List<FocusSession>? recentSessions,
     bool? isMutating,
     FocusSessionActionFeedback? lastFeedback,
     bool clearLastFeedback = false,
@@ -314,6 +408,7 @@ final class FocusSessionViewState {
       currentSession: clearCurrentSession
           ? null
           : currentSession ?? this.currentSession,
+      recentSessions: recentSessions ?? this.recentSessions,
       isMutating: isMutating ?? this.isMutating,
       lastFeedback: clearLastFeedback
           ? null

@@ -205,6 +205,13 @@ final getActiveFocusSessionUseCaseProvider =
       );
     });
 
+final getRecentFocusSessionsUseCaseProvider =
+    Provider<GetRecentFocusSessionsUseCase>((ref) {
+      return GetRecentFocusSessionsUseCase(
+        ref.watch(focusSessionRepositoryProvider),
+      );
+    });
+
 final focusSessionRuntimeControllerProvider =
     Provider<FocusSessionRuntimeController>((ref) {
       final controller = LifecycleAwareFocusSessionRuntimeController(

@@ -37,6 +37,9 @@ void main() {
         getActiveFocusSessionUseCaseProvider.overrideWithValue(
           GetActiveFocusSessionUseCase(repository),
         ),
+        getRecentFocusSessionsUseCaseProvider.overrideWithValue(
+          GetRecentFocusSessionsUseCase(repository),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -56,6 +59,7 @@ void main() {
     expect(state?.plannedMinutes, 30);
     expect(state?.pauseUsed, isTrue);
     expect(state?.hasActiveSession, isTrue);
+    expect(state?.recentSessions.length, 1);
   });
 
   test(
@@ -71,6 +75,9 @@ void main() {
           ),
           getActiveFocusSessionUseCaseProvider.overrideWithValue(
             GetActiveFocusSessionUseCase(repository),
+          ),
+          getRecentFocusSessionsUseCaseProvider.overrideWithValue(
+            GetRecentFocusSessionsUseCase(repository),
           ),
         ],
       );
@@ -99,6 +106,58 @@ void main() {
         container.read(focusSessionActionFeedbackProvider)?.message,
         'Focus session started.',
       );
+    },
+  );
+
+  test(
+    'focus session view state exposes recent terminal sessions when idle',
+    () async {
+      final now = DateTime.utc(2026, 4, 12, 12);
+      final repository = InMemoryFocusSessionRepository([
+        FocusSession(
+          id: 'session-failed',
+          taskId: 'task-1',
+          plannedMinutes: 25,
+          startedAt: now.subtract(const Duration(minutes: 30)),
+          endedAt: now.subtract(const Duration(minutes: 4)),
+          status: FocusSessionStatus.failed,
+          pauseCount: 1,
+          appBackgroundViolation: true,
+          actualElapsedSeconds: 900,
+          pointsAwarded: 0,
+          lastStateChangedAt: now.subtract(const Duration(minutes: 4)),
+        ),
+      ]);
+      final runtimeController = FakeFocusSessionRuntimeController();
+
+      final container = ProviderContainer(
+        overrides: [
+          focusSessionRuntimeControllerProvider.overrideWithValue(
+            runtimeController,
+          ),
+          getActiveFocusSessionUseCaseProvider.overrideWithValue(
+            GetActiveFocusSessionUseCase(repository),
+          ),
+          getRecentFocusSessionsUseCaseProvider.overrideWithValue(
+            GetRecentFocusSessionsUseCase(repository),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
+      addTearDown(runtimeController.dispose);
+
+      final subscription = container.listen(
+        focusSessionViewStateProvider,
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+      await _flushMicrotasks();
+
+      final state = container.read(focusSessionViewStateProvider).asData?.value;
+      expect(state?.hasActiveSession, isFalse);
+      expect(state?.latestTerminalSession?.id, 'session-failed');
+      expect(state?.latestTerminalSession?.appBackgroundViolation, isTrue);
     },
   );
 }

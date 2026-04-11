@@ -39,6 +39,8 @@ final class CharacterViewState {
     required this.intelligence,
     required this.discipline,
     required this.creativity,
+    required this.skinState,
+    required this.bodyType,
   });
 
   factory CharacterViewState.fromProfile(CharacterProfile profile) {
@@ -51,6 +53,8 @@ final class CharacterViewState {
       intelligence: profile.intelligence,
       discipline: profile.discipline,
       creativity: profile.creativity,
+      skinState: profile.skinState,
+      bodyType: profile.bodyType,
     );
   }
 
@@ -62,4 +66,6 @@ final class CharacterViewState {
   final int intelligence;
   final int discipline;
   final int creativity;
+  final String? skinState;
+  final String? bodyType;
 }

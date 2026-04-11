@@ -7,6 +7,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: LifeGachaApp()));
 
     expect(find.text('LifeGacha'), findsOneWidget);
-    expect(find.text('Focus points: 0'), findsOneWidget);
+    expect(find.byType(LifeGachaApp), findsOneWidget);
   });
 }

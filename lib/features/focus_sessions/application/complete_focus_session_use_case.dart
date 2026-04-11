@@ -433,6 +433,16 @@ final class GetActiveFocusSessionUseCase {
       _focusSessionRepository.getCurrentSession();
 }
 
+final class GetRecentFocusSessionsUseCase {
+  const GetRecentFocusSessionsUseCase(this._focusSessionRepository);
+
+  final FocusSessionRepository _focusSessionRepository;
+
+  Future<Result<List<FocusSession>>> call({int limit = 5}) {
+    return _focusSessionRepository.recentSessions(limit: limit);
+  }
+}
+
 int _calculateElapsedSeconds(FocusSession session, DateTime now) {
   if (session.status != FocusSessionStatus.active) {
     return session.actualElapsedSeconds;
