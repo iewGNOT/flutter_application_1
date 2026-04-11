@@ -1,0 +1,324 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+
+import '../../../../app/di/app_providers.dart';
+import '../../../../app/di/use_case_providers.dart';
+import '../../../../core/error/failure_message_mapper.dart';
+import '../../../../core/result/result.dart';
+import '../../application/focus_session_runtime_controller.dart';
+import '../../domain/focus_session.dart';
+
+final focusSessionControllerProvider = Provider<FocusSessionController>((ref) {
+  final controller = FocusSessionController(ref);
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
+final _focusSessionBaseStateProvider = FutureProvider<FocusSessionViewState>((
+  ref,
+) {
+  return ref.watch(focusSessionControllerProvider).load();
+});
+
+final _focusSessionMutationInProgressProvider = StateProvider<bool>((ref) {
+  return false;
+});
+
+final focusSessionActionFeedbackProvider =
+    StateProvider<FocusSessionActionFeedback?>((ref) {
+      return null;
+    });
+
+final focusSessionViewStateProvider =
+    Provider<AsyncValue<FocusSessionViewState>>((ref) {
+      final baseAsync = ref.watch(_focusSessionBaseStateProvider);
+      final isMutating = ref.watch(_focusSessionMutationInProgressProvider);
+      final feedback = ref.watch(focusSessionActionFeedbackProvider);
+
+      return baseAsync.whenData(
+        (baseState) =>
+            baseState.copyWith(isMutating: isMutating, lastFeedback: feedback),
+      );
+    });
+
+final class FocusSessionController {
+  FocusSessionController(this._ref) {
+    unawaited(_initialize());
+  }
+
+  final Ref _ref;
+  StreamSubscription<FocusSessionRuntimeState>? _subscription;
+
+  Future<FocusSessionViewState> load() async {
+    final currentSessionResult = await _ref
+        .read(getActiveFocusSessionUseCaseProvider)
+        .call();
+    if (currentSessionResult.isFailure) {
+      throw currentSessionResult.failureOrNull!;
+    }
+
+    final session = currentSessionResult.valueOrNull;
+    return FocusSessionViewState.fromSession(
+      session: session,
+      runtimeState: session == null
+          ? FocusSessionRuntimeState.idle
+          : _ref
+                .read(focusSessionRuntimeStateMachineProvider)
+                .fromDomainStatus(session.status),
+    );
+  }
+
+  Future<Result<Unit>> start({
+    required String? taskId,
+    required int plannedMinutes,
+  }) async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .start(taskId: taskId, plannedMinutes: plannedMinutes);
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.started,
+          message: 'Focus session started.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.started,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<Result<Unit>> pause() async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .pause();
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.paused,
+          message: 'Focus session paused.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.paused,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<Result<Unit>> resume() async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .resume();
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.resumed,
+          message: 'Focus session resumed.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.resumed,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<Result<Unit>> stopEarly() async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .stopEarly();
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.stopped,
+          message: 'Focus session stopped early.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.stopped,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<Result<Unit>> completeByTimer() async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .completeByTimer();
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.completed,
+          message: 'Focus session completed.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.completed,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Future<Result<Unit>> failForLifecycleViolation() async {
+    _startMutation();
+    final result = await _ref
+        .read(focusSessionRuntimeControllerProvider)
+        .failForLifecycleViolation();
+    _finishMutation(
+      feedback: result.fold(
+        onSuccess: (_) => const FocusSessionActionFeedback(
+          type: FocusSessionActionType.failed,
+          message: 'The session ended because the app left the foreground.',
+        ),
+        onFailure: (failure) => FocusSessionActionFeedback.error(
+          type: FocusSessionActionType.failed,
+          message: FailureMessageMapper.toFriendlyMessage(failure),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  void refresh() => _ref.invalidate(_focusSessionBaseStateProvider);
+
+  void clearFeedback() {
+    _ref.read(focusSessionActionFeedbackProvider.notifier).state = null;
+  }
+
+  FocusSessionViewState placeholderState() {
+    return const FocusSessionViewState(
+      plannedMinutes: 25,
+      pauseUsed: false,
+      isRunning: false,
+      runtimeState: FocusSessionRuntimeState.idle,
+      currentSession: null,
+      isMutating: false,
+    );
+  }
+
+  void dispose() {
+    _subscription?.cancel();
+  }
+
+  Future<void> _initialize() async {
+    final runtimeController = _ref.read(focusSessionRuntimeControllerProvider);
+    await runtimeController.ensureStarted();
+    _subscription = runtimeController.states.listen((_) {
+      refresh();
+    });
+    refresh();
+  }
+
+  void _startMutation() {
+    clearFeedback();
+    _ref.read(_focusSessionMutationInProgressProvider.notifier).state = true;
+  }
+
+  void _finishMutation({required FocusSessionActionFeedback feedback}) {
+    _ref.read(_focusSessionMutationInProgressProvider.notifier).state = false;
+    _ref.read(focusSessionActionFeedbackProvider.notifier).state = feedback;
+    refresh();
+  }
+}
+
+enum FocusSessionActionType {
+  started,
+  paused,
+  resumed,
+  stopped,
+  completed,
+  failed,
+}
+
+final class FocusSessionActionFeedback {
+  const FocusSessionActionFeedback({
+    required this.type,
+    required this.message,
+    this.isError = false,
+  });
+
+  const FocusSessionActionFeedback.error({
+    required this.type,
+    required this.message,
+  }) : isError = true;
+
+  final FocusSessionActionType type;
+  final String message;
+  final bool isError;
+}
+
+final class FocusSessionViewState {
+  const FocusSessionViewState({
+    required this.plannedMinutes,
+    required this.pauseUsed,
+    required this.isRunning,
+    required this.runtimeState,
+    required this.currentSession,
+    required this.isMutating,
+    this.lastFeedback,
+  });
+
+  factory FocusSessionViewState.fromSession({
+    required FocusSession? session,
+    required FocusSessionRuntimeState runtimeState,
+  }) {
+    return FocusSessionViewState(
+      plannedMinutes: session?.plannedMinutes ?? 25,
+      pauseUsed: (session?.pauseCount ?? 0) > 0,
+      isRunning: runtimeState == FocusSessionRuntimeState.active,
+      runtimeState: runtimeState,
+      currentSession: session,
+      isMutating: false,
+    );
+  }
+
+  final int plannedMinutes;
+  final bool pauseUsed;
+  final bool isRunning;
+  final FocusSessionRuntimeState runtimeState;
+  final FocusSession? currentSession;
+  final bool isMutating;
+  final FocusSessionActionFeedback? lastFeedback;
+
+  bool get hasActiveSession => currentSession != null;
+
+  FocusSessionViewState copyWith({
+    int? plannedMinutes,
+    bool? pauseUsed,
+    bool? isRunning,
+    FocusSessionRuntimeState? runtimeState,
+    FocusSession? currentSession,
+    bool clearCurrentSession = false,
+    bool? isMutating,
+    FocusSessionActionFeedback? lastFeedback,
+    bool clearLastFeedback = false,
+  }) {
+    return FocusSessionViewState(
+      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
+      pauseUsed: pauseUsed ?? this.pauseUsed,
+      isRunning: isRunning ?? this.isRunning,
+      runtimeState: runtimeState ?? this.runtimeState,
+      currentSession: clearCurrentSession
+          ? null
+          : currentSession ?? this.currentSession,
+      isMutating: isMutating ?? this.isMutating,
+      lastFeedback: clearLastFeedback
+          ? null
+          : lastFeedback ?? this.lastFeedback,
+    );
+  }
+}

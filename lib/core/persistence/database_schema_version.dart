@@ -1,0 +1,1 @@
+const lifeGachaSchemaVersion = 1;
