@@ -10,7 +10,7 @@ final achievementsControllerProvider = Provider<AchievementsController>((ref) {
 final achievementsViewStateProvider = FutureProvider<AchievementsViewState>((
   ref,
 ) {
-  return ref.watch(achievementsControllerProvider).load();
+  return ref.read(achievementsControllerProvider).load();
 });
 
 final class AchievementsController {

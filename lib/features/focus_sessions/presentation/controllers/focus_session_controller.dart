@@ -19,7 +19,7 @@ final focusSessionControllerProvider = Provider<FocusSessionController>((ref) {
 final _focusSessionBaseStateProvider = FutureProvider<FocusSessionViewState>((
   ref,
 ) {
-  return ref.watch(focusSessionControllerProvider).load();
+  return ref.read(focusSessionControllerProvider).load();
 });
 
 final _focusSessionMutationInProgressProvider = StateProvider<bool>((ref) {
@@ -220,7 +220,6 @@ final class FocusSessionController {
     _subscription = runtimeController.states.listen((_) {
       refresh();
     });
-    refresh();
   }
 
   void _startMutation() {

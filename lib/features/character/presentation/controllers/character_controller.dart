@@ -8,7 +8,7 @@ final characterControllerProvider = Provider<CharacterController>((ref) {
 });
 
 final characterViewStateProvider = FutureProvider<CharacterViewState>((ref) {
-  return ref.watch(characterControllerProvider).load();
+  return ref.read(characterControllerProvider).load();
 });
 
 final class CharacterController {

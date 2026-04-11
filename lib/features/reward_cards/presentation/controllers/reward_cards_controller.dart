@@ -14,7 +14,7 @@ final rewardCardsControllerProvider = Provider<RewardCardsController>((ref) {
 final _rewardCardsBaseStateProvider = FutureProvider<RewardCardsViewState>((
   ref,
 ) {
-  return ref.watch(rewardCardsControllerProvider).load();
+  return ref.read(rewardCardsControllerProvider).load();
 });
 
 final _rewardCardsMutationInProgressProvider = StateProvider<bool>((ref) {

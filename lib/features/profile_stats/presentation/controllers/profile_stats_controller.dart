@@ -11,7 +11,7 @@ final profileStatsControllerProvider = Provider<ProfileStatsController>((ref) {
 final profileStatsViewStateProvider = FutureProvider<ProfileStatsViewState>((
   ref,
 ) {
-  return ref.watch(profileStatsControllerProvider).load();
+  return ref.read(profileStatsControllerProvider).load();
 });
 
 final class ProfileStatsController {

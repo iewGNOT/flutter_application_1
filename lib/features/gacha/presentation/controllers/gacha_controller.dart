@@ -12,7 +12,7 @@ final gachaControllerProvider = Provider<GachaController>((ref) {
 });
 
 final _gachaBaseStateProvider = FutureProvider<GachaViewState>((ref) {
-  return ref.watch(gachaControllerProvider).load();
+  return ref.read(gachaControllerProvider).load();
 });
 
 final _gachaMutationInProgressProvider = StateProvider<bool>((ref) {

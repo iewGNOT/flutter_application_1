@@ -26,6 +26,9 @@ final class FixedClock implements AppClock {
 
   @override
   DateTime now() => currentTime;
+
+  @override
+  Stopwatch startStopwatch() => Stopwatch()..start();
 }
 
 final class SequentialIdGenerator implements IdGenerator {
@@ -40,9 +43,7 @@ final class SequentialIdGenerator implements IdGenerator {
 
 final class ImmediateUnitOfWork implements UnitOfWork {
   @override
-  Future<Result<T>> runInTransaction<T>(
-    Future<Result<T>> Function() action,
-  ) {
+  Future<T> runInTransaction<T>(Future<T> Function() action) {
     return action();
   }
 }
@@ -153,8 +154,9 @@ final class InMemoryTaskRepository implements TaskRepository {
 }
 
 final class InMemoryWalletRepository implements WalletRepository {
-  InMemoryWalletRepository([Iterable<WalletLedgerEntry> initialEntries = const []])
-    : _entries = [...initialEntries];
+  InMemoryWalletRepository([
+    Iterable<WalletLedgerEntry> initialEntries = const [],
+  ]) : _entries = [...initialEntries];
 
   final List<WalletLedgerEntry> _entries;
   final StreamController<int> _balanceController =
@@ -166,7 +168,9 @@ final class InMemoryWalletRepository implements WalletRepository {
   Stream<int> watchBalance() {
     return Stream<int>.multi((streamController) {
       streamController.add(_balance());
-      final subscription = _balanceController.stream.listen(streamController.add);
+      final subscription = _balanceController.stream.listen(
+        streamController.add,
+      );
       streamController.onCancel = subscription.cancel;
     });
   }
@@ -175,7 +179,9 @@ final class InMemoryWalletRepository implements WalletRepository {
   Stream<List<WalletLedgerEntry>> watchLedger() {
     return Stream<List<WalletLedgerEntry>>.multi((streamController) {
       streamController.add(_sortedEntries());
-      final subscription = _ledgerController.stream.listen(streamController.add);
+      final subscription = _ledgerController.stream.listen(
+        streamController.add,
+      );
       streamController.onCancel = subscription.cancel;
     });
   }
@@ -217,9 +223,7 @@ final class InMemoryWalletRepository implements WalletRepository {
 }
 
 final class InMemoryRewardCardRepository implements RewardCardRepository {
-  InMemoryRewardCardRepository([
-    Iterable<RewardCard> initialCards = const [],
-  ]) {
+  InMemoryRewardCardRepository([Iterable<RewardCard> initialCards = const []]) {
     _cards.addAll(initialCards);
   }
 
@@ -383,7 +387,9 @@ final class InMemoryFocusSessionRepository implements FocusSessionRepository {
 
   @override
   Future<Result<FocusSession>> findById(String id) async {
-    final session = _sessions.where((candidate) => candidate.id == id).firstOrNull;
+    final session = _sessions
+        .where((candidate) => candidate.id == id)
+        .firstOrNull;
     return session == null
         ? const Failure(FocusSessionNotFoundFailure())
         : Success(session);
@@ -391,7 +397,9 @@ final class InMemoryFocusSessionRepository implements FocusSessionRepository {
 
   @override
   Future<Result<Unit>> saveTransition(FocusSession session) async {
-    final index = _sessions.indexWhere((candidate) => candidate.id == session.id);
+    final index = _sessions.indexWhere(
+      (candidate) => candidate.id == session.id,
+    );
     if (index == -1) {
       _sessions.add(session);
     } else {
@@ -415,7 +423,9 @@ final class InMemoryFocusSessionRepository implements FocusSessionRepository {
   }
 
   @override
-  Future<Result<List<FocusSession>>> recentSessions({required int limit}) async {
+  Future<Result<List<FocusSession>>> recentSessions({
+    required int limit,
+  }) async {
     final sessions = [..._sessions];
     sessions.sort((left, right) => right.startedAt.compareTo(left.startedAt));
     return Success(sessions.take(limit).toList(growable: false));
@@ -437,7 +447,9 @@ final class InMemoryFocusSessionRepository implements FocusSessionRepository {
       return null;
     }
 
-    currentSessions.sort((left, right) => right.startedAt.compareTo(left.startedAt));
+    currentSessions.sort(
+      (left, right) => right.startedAt.compareTo(left.startedAt),
+    );
     return currentSessions.first;
   }
 }

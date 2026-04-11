@@ -8,7 +8,7 @@ final dashboardControllerProvider = Provider<DashboardController>((ref) {
 });
 
 final dashboardViewStateProvider = FutureProvider<DashboardViewState>((ref) {
-  return ref.watch(dashboardControllerProvider).load();
+  return ref.read(dashboardControllerProvider).load();
 });
 
 final class DashboardController {
