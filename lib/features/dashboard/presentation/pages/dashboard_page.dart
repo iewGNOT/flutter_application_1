@@ -33,7 +33,9 @@ final class DashboardPage extends ConsumerWidget {
         builder: (context, state) => RefreshIndicator(
           onRefresh: () async {
             controller.refresh();
-            await ref.read(dashboardViewStateProvider.future);
+            await ref
+                .read(dashboardViewStateProvider.future)
+                .catchError((_) => controller.placeholderState());
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),

@@ -26,7 +26,9 @@ final class _FocusSessionPageState extends ConsumerState<FocusSessionPage> {
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
+      if (!mounted) return;
+      final state = ref.read(focusSessionViewStateProvider).asData?.value;
+      if (state?.hasActiveSession == true) {
         setState(() {});
       }
     });
@@ -42,27 +44,6 @@ final class _FocusSessionPageState extends ConsumerState<FocusSessionPage> {
   Widget build(BuildContext context) {
     final controller = ref.read(focusSessionControllerProvider);
     final stateAsync = ref.watch(focusSessionViewStateProvider);
-
-    ref.listen<FocusSessionActionFeedback?>(
-      focusSessionActionFeedbackProvider,
-      (previous, next) {
-        if (next == null || next == previous) {
-          return;
-        }
-
-        final messenger = ScaffoldMessenger.of(context);
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(next.message),
-              backgroundColor: next.isError
-                  ? Theme.of(context).colorScheme.error
-                  : null,
-            ),
-          );
-      },
-    );
 
     return Scaffold(
       appBar: AppBar(

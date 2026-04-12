@@ -46,7 +46,11 @@ final focusSessionViewStateProvider =
 
 final class FocusSessionController {
   FocusSessionController(this._ref) {
-    unawaited(_initialize());
+    unawaited(
+      _initialize().onError((e, _) {
+        _ref.invalidate(_focusSessionBaseStateProvider);
+      }),
+    );
   }
 
   final Ref _ref;
