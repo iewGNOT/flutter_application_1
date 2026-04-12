@@ -30,6 +30,7 @@ Current implementation status:
 - Phase 3 Batch 4 is complete: the gacha screen now uses real preview state, draw actions, result presentation, and failure messaging
 - Phase 3 Batch 5 is complete: shared async/loading/error/empty widgets now back the implemented screens with minimal refresh cleanup
 - Phase 3 Batch 6 is complete: broader deterministic test coverage and final cleanup now cover the remaining planned gaps
+- Post-Phase 3 bug fix pass is complete: bottom navigation, feedback duplication, idle timer rebuild, and init error surfacing are all resolved
 - Remaining major work is optional future hardening outside the completed Phase 3 batch plan
 
 ---
@@ -288,6 +289,23 @@ The architecture should remain extensible for future additions such as:
   - `& "$env:flutter\\flutter.bat" ...`
   - `& "$env:flutter\\dart.bat" ...`
 
+### iOS development environment (macOS arm64)
+- Flutter SDK cloned to `~/flutter` (stable channel, 3.41.6)
+- Flutter added to PATH via `~/.zshrc`: `export PATH="$HOME/flutter/bin:$PATH"`
+- Xcode 26.4 installed at `/Applications/Xcode.app`
+- Xcode developer directory set via: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
+- CocoaPods 1.16.2 installed via Homebrew
+- Project cloned to `~/Desktop/flutter_application_1`
+- iOS Podfile and pods generated via `flutter build ios --no-codesign`
+- Tested on iPhone 17 Pro simulator (iOS 26.4)
+- GitHub auth configured via `gh auth login` (account: PTLT)
+- macOS commands to run after changes:
+  ```bash
+  ~/flutter/bin/flutter analyze
+  ~/flutter/bin/flutter test
+  ~/flutter/bin/flutter run -d "1054CF53-EBF5-4925-A7D5-1FC76D448471"
+  ```
+
 ---
 
 ## 7. Important Corrections / Deviations
@@ -540,7 +558,8 @@ If work continues later, prefer small follow-up slices that expand platform note
 - shared deterministic fakes in `test/support/test_doubles.dart`
 
 ### Current verified status
-- `flutter analyze` passed after Batch 6
+- `flutter analyze` passed after post-Phase 3 bug fix pass on 2026-04-12
+- full `flutter test` suite: 48/48 passed on 2026-04-12
 - targeted Batch 6 tests passed:
   - `test/app/widgets/app_async_value_view_test.dart`
   - `test/core/persistence/life_gacha_database_test.dart`
@@ -691,3 +710,19 @@ Verification completed:
   - `test/features/profile_stats/data/drift_profile_stats_repository_test.dart`
   - `test/integration/phase3_mvp_flows_test.dart`
 - Full `flutter test` suite: passed on 2026-04-12
+
+### 2026-04-12 - Post-Phase 3 bug fix pass
+
+Identified and fixed five issues from a full code review without changing the production architecture:
+
+- Added `AppShell` with `NavigationBar` via `ShellRoute` in `app_router.dart` so users can navigate freely between all six feature screens without returning to the dashboard
+- Removed the duplicate `SnackBar` `ref.listen` from `FocusSessionPage`; the inline `_ActionFeedbackCard` is now the single feedback surface
+- Changed `FocusSessionPage` timer to only trigger `setState` when `hasActiveSession == true`, eliminating one unnecessary rebuild per second in the idle state
+- Added `.onError` handler to `FocusSessionController._initialize()` so startup failures invalidate the base state provider and surface an error through `AppAsyncValueView` instead of silently stalling on loading
+- Fixed `DashboardPage` pull-to-refresh callback to properly await the provider reload so the spinner dismisses only after data is returned
+
+Verification completed:
+
+- `flutter analyze`: passed on 2026-04-12
+- Full `flutter test` suite: 48/48 passed on 2026-04-12
+- Tested on iPhone 17 Pro simulator (iOS 26.4) with Xcode 26.4
