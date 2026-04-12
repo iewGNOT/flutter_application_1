@@ -12,6 +12,13 @@ import '../error/app_failure.dart';
 import '../logging/app_logger.dart';
 import 'encrypted_database_opener.dart';
 
+Future<void> _configureSqlCipherForBackgroundIsolate() async {
+  sqlite3_open.open.overrideFor(
+    sqlite3_open.OperatingSystem.android,
+    openCipherOnAndroid,
+  );
+}
+
 final class DriftEncryptedDatabaseOpener implements EncryptedDatabaseOpener {
   DriftEncryptedDatabaseOpener({
     required DatabaseKeyService databaseKeyService,
@@ -42,6 +49,7 @@ final class DriftEncryptedDatabaseOpener implements EncryptedDatabaseOpener {
 
       return NativeDatabase.createInBackground(
         databaseFile,
+        isolateSetup: _configureSqlCipherForBackgroundIsolate,
         setup: (rawDatabase) {
           // Platform integration notes:
           // 1. Android requires sqlcipher_flutter_libs and openCipherOnAndroid.
