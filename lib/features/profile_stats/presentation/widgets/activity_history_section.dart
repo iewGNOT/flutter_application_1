@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/widgets/app_empty_state.dart';
 import '../../domain/activity_history_summary.dart';
 
 final class ActivityHistorySection extends StatelessWidget {
@@ -10,33 +10,62 @@ final class ActivityHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Recent activity',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            if (items.isEmpty)
-              const AppEmptyState(
-                title: 'No recent activity yet.',
-                icon: Icons.history_rounded,
-              )
-            else
-              ...items.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(_activityIcon(item.type)),
-                  title: Text(item.title),
-                  subtitle: Text(_dateLabel(item.occurredAt)),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.analytics_rounded,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Recent activity',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'No recent activity yet.',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
-          ],
-        ),
+            )
+          else
+            ...items.map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(_activityIcon(item.type)),
+                title: Text(item.title),
+                subtitle: Text(_dateLabel(item.occurredAt)),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -45,7 +74,7 @@ final class ActivityHistorySection extends StatelessWidget {
 IconData _activityIcon(ActivityHistoryType type) {
   return switch (type) {
     ActivityHistoryType.focusSession => Icons.timer_rounded,
-    ActivityHistoryType.gachaDraw => Icons.casino_rounded,
+    ActivityHistoryType.gachaDraw => Icons.auto_awesome_rounded,
     ActivityHistoryType.walletLedger => Icons.account_balance_wallet_rounded,
   };
 }

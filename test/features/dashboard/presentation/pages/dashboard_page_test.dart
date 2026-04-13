@@ -26,11 +26,13 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Current balance'), findsOneWidget);
+    expect(find.text('AURA BALANCE'), findsOneWidget);
     expect(find.text('240'), findsOneWidget);
-    expect(find.text('5 day streak'), findsOneWidget);
-    expect(find.text('Quick actions'), findsOneWidget);
-    expect(find.text('Rewards'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('5-Day Streak'), findsOneWidget);
+    expect(find.text('Quick Rituals'), findsOneWidget);
+    expect(find.text('Tasks'), findsWidgets);
+    expect(find.text('Focus'), findsOneWidget);
+    expect(find.text('Gacha'), findsOneWidget);
+    expect(find.text('Rewards'), findsWidgets);
   });
 }

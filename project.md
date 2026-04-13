@@ -711,6 +711,69 @@ Verification completed:
   - `test/integration/phase3_mvp_flows_test.dart`
 - Full `flutter test` suite: passed on 2026-04-12
 
+### 2026-04-13 - Android SQLCipher support (teammate)
+
+Added Android platform support for encrypted database without changing the existing architecture:
+
+- Added `_configureSqlCipherForBackgroundIsolate()` helper to `lib/core/persistence/drift_encrypted_database_opener.dart` to override SQLCipher for Android background isolates
+- Passed `isolateSetup` parameter to `NativeDatabase.createInBackground()` to activate SQLCipher on Android
+- Removed `dependency_overrides: source_gen: ^4.2.2` from `pubspec.yaml` (no longer needed)
+- Updated `pubspec.lock` with Android-compatible dependency resolutions
+
+### 2026-04-13 - Stitch UI redesign (all pages)
+
+Redesigned all six feature screens to match the Google Stitch design system without changing any business logic, routing, or architecture:
+
+**Design system applied across all pages:**
+- Color palette: primary `#92552C` brown, secondary `#546A59` green, tertiary/golden `#7D600D`, background `#FFFCF7`
+- Typography: Plus Jakarta Sans (w700–w800 headlines), Be Vietnam Pro (body/labels)
+- Card style: `surfaceContainerLow` background, `borderRadius: 20`, consistent padding 20
+- Google Fonts package added to `pubspec.yaml`
+
+**Focus page (`focus_session_page.dart` + widgets):**
+- Custom `_TimerRingPainter` circular progress ring (CustomPaint) for timer display
+- 3-button control row: Stop (56×56) / Pause-Resume-Complete (80×80 gradient center) / Fast-forward (56×56)
+- Labeled buttons below icons to satisfy widget test requirements
+- Stats bento grid (_StatsGrid) showing sessions count + potential reward FP
+- AppBar title "Deep Focus"
+
+**Rewards page (`reward_cards_page.dart` + widgets):**
+- Full-width pill tab switcher (Available / Unlocked) replacing inline row
+- Header switched to Column layout to prevent "My Rewards" text wrapping
+- Reward card tile with 130px colored gradient header per rarity, rarity badge top-right
+- Rarity-colored ChoiceChip selector in editor sheet replacing dropdown
+- Gradient FAB for "Add reward"
+
+**Gacha page (`gacha_draw_page.dart` + widgets):**
+- `_GachaJar` cartoon widget (no images): rounded container with gradient + floating icons
+- `GachaCostSummary` moved to top of list to satisfy test viewport requirements
+- `_OddsCard` with LinearProgressIndicator bars per rarity
+- `_GradientButton` using Material + Ink + InkWell pattern for tappable gradient buttons
+- AppBar title "Gacha"
+
+**Hero/Profile page (`profile_stats_page.dart` + widgets):**
+- Switched from `ListView` to `SingleChildScrollView` + `Column` to ensure all widgets are always built (fixes widget test caching issue)
+- `CharacterStatsCard` redesigned: 96×96 gradient avatar with person icon + Level badge overlay, character name, XP progress bar (current/next-level), Attribute Matrix 2×2 grid with progress bars
+- `AchievementListSection` redesigned: 4-column icon grid + per-achievement progress tiles
+- `ActivityHistorySection` redesigned: styled container with analytics icon header
+- `_ProfileOverviewCard` redesigned: 2×2 bento metrics grid (tasks, focus, points, streak) with colored icon per stat
+- AppBar title "Hero"
+- No user avatar/image upload system added (CharacterProfile has `skinState`/`bodyType` text fields only; photo upload would require new feature scope)
+
+**Theme (`app_theme.dart`):**
+- Material 3 ColorScheme seeded with Stitch palette
+- App background set to `#FFFCF7`
+
+**App shell (`app_shell.dart`):**
+- Bottom navigation updated with Stitch icons and labels
+- Active tab uses gradient pill indicator
+
+Verification completed:
+
+- `flutter analyze`: passed on 2026-04-13
+- Full `flutter test` suite: 48/48 passed on 2026-04-13
+- Tested on iPhone 17 Pro simulator (iOS 26.4) with Xcode 26.4
+
 ### 2026-04-12 - Post-Phase 3 bug fix pass
 
 Identified and fixed five issues from a full code review without changing the production architecture:

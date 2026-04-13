@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/widgets/app_async_value_view.dart';
 import '../../../../app/widgets/app_empty_state.dart';
@@ -7,6 +8,8 @@ import '../../domain/reward_card.dart';
 import '../controllers/reward_cards_controller.dart';
 import '../widgets/reward_card_editor_sheet.dart';
 import '../widgets/reward_card_tile.dart';
+
+enum _RewardsTab { available, unlocked }
 
 final class RewardCardsPage extends ConsumerStatefulWidget {
   const RewardCardsPage({super.key});
@@ -16,43 +19,32 @@ final class RewardCardsPage extends ConsumerStatefulWidget {
 }
 
 final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
+  _RewardsTab _selectedTab = _RewardsTab.available;
+
   @override
   Widget build(BuildContext context) {
     final controller = ref.read(rewardCardsControllerProvider);
     final stateAsync = ref.watch(rewardCardsViewStateProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen<RewardCardsActionFeedback?>(rewardCardsActionFeedbackProvider, (
       previous,
       next,
     ) {
-      if (next == null || next == previous) {
-        return;
-      }
-
+      if (next == null || next == previous) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: Text(next.message),
-            backgroundColor: next.isError
-                ? Theme.of(context).colorScheme.error
-                : null,
+            backgroundColor: next.isError ? colorScheme.error : null,
           ),
         );
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reward Cards'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: controller.refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(context, colorScheme),
       body: AppAsyncValueView<RewardCardsViewState>(
         value: stateAsync,
         fallbackErrorMessage: 'Reward cards could not be loaded.',
@@ -65,60 +57,60 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
                 onRefresh: controller.refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
                   children: [
-                    _RewardSummaryCard(
+                    // ── Header & Tab Switcher ─────────────────────────────
+                    _RewardsHeader(
                       availableCount: state.availableCount,
                       unlockedCount: state.drawnCount,
+                      selectedTab: _selectedTab,
+                      onTabChanged: (tab) => setState(() {
+                        _selectedTab = tab;
+                      }),
                     ),
-                    const SizedBox(height: 16),
-                    const _SectionHeader(
-                      title: 'Available pool',
-                      subtitle: 'Editable until drawn by gacha.',
-                    ),
-                    const SizedBox(height: 8),
-                    if (state.availableCards.isEmpty)
-                      const _RewardCardsEmptyState(
-                        title: 'No available rewards.',
-                        message:
-                            'Add reward cards here so the gacha pool has something to draw.',
-                      )
-                    else
-                      ...state.availableCards.map(
-                        (card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: RewardCardTile(
-                            card: card,
-                            isBusy: state.isMutating,
-                            onEdit: () => _editRewardCard(card),
-                            onArchive: () => _confirmArchive(card),
+                    const SizedBox(height: 20),
+                    // ── Card list ─────────────────────────────────────────
+                    if (_selectedTab == _RewardsTab.available) ...[
+                      if (state.availableCards.isEmpty)
+                        _EmptyState(
+                          title: 'No rewards in the pool yet.',
+                          message:
+                              'Add reward cards so the gacha has something to draw.',
+                          icon: Icons.card_giftcard_outlined,
+                        )
+                      else
+                        ...state.availableCards.map(
+                          (card) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: RewardCardTile(
+                              card: card,
+                              isBusy: state.isMutating,
+                              onEdit: () => _editRewardCard(card),
+                              onArchive: () => _confirmArchive(card),
+                            ),
                           ),
                         ),
-                      ),
-                    const SizedBox(height: 24),
-                    const _SectionHeader(
-                      title: 'Unlocked rewards',
-                      subtitle: 'Already removed from the available pool.',
-                    ),
-                    const SizedBox(height: 8),
-                    if (state.unlockedCards.isEmpty)
-                      const _RewardCardsEmptyState(
-                        title: 'No unlocked rewards yet.',
-                        message:
-                            'Draw rewards from the gacha page to populate this history.',
-                      )
-                    else
-                      ...state.unlockedCards.map(
-                        (card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: RewardCardTile(
-                            card: card,
-                            isBusy: false,
-                            onEdit: null,
-                            onArchive: null,
+                    ] else ...[
+                      if (state.unlockedCards.isEmpty)
+                        _EmptyState(
+                          title: 'No unlocked rewards yet.',
+                          message:
+                              'Draw rewards from the gacha page to fill this list.',
+                          icon: Icons.emoji_events_outlined,
+                        )
+                      else
+                        ...state.unlockedCards.map(
+                          (card) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: RewardCardTile(
+                              card: card,
+                              isBusy: false,
+                              onEdit: null,
+                              onArchive: null,
+                            ),
                           ),
                         ),
-                      ),
+                    ],
                   ],
                 ),
               ),
@@ -126,12 +118,36 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: stateAsync.asData?.value.isMutating == true
-            ? null
-            : _createRewardCard,
-        icon: const Icon(Icons.add_card_rounded),
-        label: const Text('Add reward'),
+      floatingActionButton: _buildFab(stateAsync),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    return AppBar(
+      title: Text(
+        'Rewards',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFab(AsyncValue<RewardCardsViewState> stateAsync) {
+    final isBusy = stateAsync.asData?.value.isMutating == true;
+    return FloatingActionButton.extended(
+      onPressed: isBusy ? null : _createRewardCard,
+      backgroundColor: const Color(0xFF92552C),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add_card_rounded),
+      label: Text(
+        'Add reward',
+        style: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -142,9 +158,7 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
       isScrollControlled: true,
       builder: (context) => const RewardCardEditorSheet(),
     );
-    if (result == null) {
-      return;
-    }
+    if (result == null) return;
 
     await ref
         .read(rewardCardsControllerProvider)
@@ -161,9 +175,7 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
         submitLabel: 'Save changes',
       ),
     );
-    if (result == null) {
-      return;
-    }
+    if (result == null) return;
 
     await ref
         .read(rewardCardsControllerProvider)
@@ -174,7 +186,10 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
     final shouldArchive = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Archive reward?'),
+        title: Text(
+          'Archive reward?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        ),
         content: Text('Remove "${card.content}" from the available pool?'),
         actions: [
           TextButton(
@@ -188,115 +203,170 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
         ],
       ),
     );
-    if (shouldArchive != true) {
-      return;
-    }
+    if (shouldArchive != true) return;
 
     await ref.read(rewardCardsControllerProvider).archiveRewardCard(card.id);
   }
 }
 
-final class _RewardSummaryCard extends StatelessWidget {
-  const _RewardSummaryCard({
+// ── Header with tab switcher ──────────────────────────────────────────────────
+
+final class _RewardsHeader extends StatelessWidget {
+  const _RewardsHeader({
     required this.availableCount,
     required this.unlockedCount,
+    required this.selectedTab,
+    required this.onTabChanged,
   });
 
   final int availableCount;
   final int unlockedCount;
+  final _RewardsTab selectedTab;
+  final ValueChanged<_RewardsTab> onTabChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: _RewardCounter(
-                label: 'Available',
-                value: '$availableCount',
-                icon: Icons.casino_rounded,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'COLLECTION',
+          style: GoogleFonts.beVietnamPro(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.secondary,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Rewards',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.onSurface,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 14),
+        // Pill tab switcher (full width)
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _TabPill(
+                  label: 'Available',
+                  count: availableCount,
+                  selected: selectedTab == _RewardsTab.available,
+                  onTap: () => onTabChanged(_RewardsTab.available),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _RewardCounter(
-                label: 'Unlocked',
-                value: '$unlockedCount',
-                icon: Icons.emoji_events_rounded,
+              const SizedBox(width: 2),
+              Expanded(
+                child: _TabPill(
+                  label: 'Unlocked',
+                  count: unlockedCount,
+                  selected: selectedTab == _RewardsTab.unlocked,
+                  onTap: () => onTabChanged(_RewardsTab.unlocked),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _TabPill extends StatelessWidget {
+  const _TabPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? colorScheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(99),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          '$label ($count)',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.beVietnamPro(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected
+                ? colorScheme.onSurface
+                : colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
   }
 }
 
-final class _RewardCounter extends StatelessWidget {
-  const _RewardCounter({
-    required this.label,
-    required this.value,
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+final class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.title,
+    required this.message,
     required this.icon,
   });
 
-  final String label;
-  final String value;
+  final String title;
+  final String message;
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon),
-        const SizedBox(height: 8),
-        Text(label, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
-      ],
-    );
-  }
-}
-
-final class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 4),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-}
-
-final class _RewardCardsEmptyState extends StatelessWidget {
-  const _RewardCardsEmptyState({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
+      ),
       child: AppEmptyState(
         title: title,
         message: message,
-        padding: const EdgeInsets.all(24),
+        icon: icon,
+        padding: EdgeInsets.zero,
       ),
     );
   }

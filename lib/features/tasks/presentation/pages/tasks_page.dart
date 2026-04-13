@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/routing/app_route.dart';
 import '../../../../app/widgets/app_async_value_view.dart';
@@ -45,16 +46,7 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tasks'),
-        actions: [
-          IconButton(
-            tooltip: 'Clear message',
-            onPressed: controller.clearFeedback,
-            icon: const Icon(Icons.clear_all_rounded),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(context),
       body: AppAsyncValueView<TasksViewState>(
         value: stateAsync,
         fallbackErrorMessage: 'Tasks could not be loaded.',
@@ -67,12 +59,12 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
                 onRefresh: controller.refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                   children: [
-                    _TasksOverviewCard(taskCount: state.activeTaskCount),
-                    const SizedBox(height: 16),
+                    _TasksHeader(taskCount: state.activeTaskCount),
+                    const SizedBox(height: 20),
                     if (state.tasks.isEmpty)
-                      const _TasksEmptyState()
+                      _TasksEmptyState(onAdd: _createTask)
                     else
                       ...state.tasks.map(
                         (task) => Padding(
@@ -94,12 +86,34 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: stateAsync.asData?.value.isMutating == true
-            ? null
-            : _createTask,
-        label: const Text('Add task'),
-        icon: const Icon(Icons.add),
+      floatingActionButton: _buildFab(stateAsync),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AppBar(
+      title: Text(
+        'Tasks',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFab(AsyncValue<TasksViewState> stateAsync) {
+    final isBusy = stateAsync.asData?.value.isMutating == true;
+    return FloatingActionButton.extended(
+      onPressed: isBusy ? null : _createTask,
+      backgroundColor: const Color(0xFF92552C),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add),
+      label: Text(
+        'Add task',
+        style: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -146,7 +160,10 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete task?'),
+        title: Text(
+          'Delete task?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        ),
         content: Text('Remove "${task.title}" from the active list?'),
         actions: [
           TextButton(
@@ -191,59 +208,66 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
   }
 }
 
-final class _TasksOverviewCard extends StatelessWidget {
-  const _TasksOverviewCard({required this.taskCount});
+// ── Header ────────────────────────────────────────────────────────────────────
+
+final class _TasksHeader extends StatelessWidget {
+  const _TasksHeader({required this.taskCount});
 
   final int taskCount;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.assignment_turned_in_rounded, size: 32),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Active tasks',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$taskCount ready for focus or completion.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          taskCount == 0
+              ? 'No active tasks'
+              : '$taskCount ${taskCount == 1 ? 'task' : 'tasks'} active',
+          style: GoogleFonts.beVietnamPro(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+
 final class _TasksEmptyState extends StatelessWidget {
-  const _TasksEmptyState();
+  const _TasksEmptyState({required this.onAdd});
+
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
       child: const AppEmptyState(
         title: 'No active tasks yet.',
         message:
             'Add a task, then launch a focus session or mark it complete here.',
         icon: Icons.playlist_add_check_circle_rounded,
-        padding: EdgeInsets.all(24),
+        padding: EdgeInsets.zero,
       ),
     );
   }
 }
+
+// ── Focus duration sheet ──────────────────────────────────────────────────────
 
 Future<int?> _showFocusDurationSheet(BuildContext context) {
   return showModalBottomSheet<int>(
@@ -266,26 +290,37 @@ final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Start focus session',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text('Choose the planned duration for this task.'),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Text(
+              'Choose the planned duration for this task.',
+              style: GoogleFonts.beVietnamPro(
+                fontSize: 13,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _options
-                  .map((minutes) {
-                    return ChoiceChip(
+                  .map(
+                    (minutes) => ChoiceChip(
                       label: Text('$minutes min'),
                       selected: _selectedMinutes == minutes,
                       onSelected: (_) {
@@ -293,8 +328,8 @@ final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
                           _selectedMinutes = minutes;
                         });
                       },
-                    );
-                  })
+                    ),
+                  )
                   .toList(growable: false),
             ),
             const SizedBox(height: 20),
@@ -302,6 +337,9 @@ final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () => Navigator.of(context).pop(_selectedMinutes),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF92552C),
+                ),
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('Start session'),
               ),

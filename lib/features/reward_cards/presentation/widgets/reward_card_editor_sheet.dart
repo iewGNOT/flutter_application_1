@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/config/domain_enums.dart';
 
@@ -38,30 +39,67 @@ final class _RewardCardEditorSheetState extends State<RewardCardEditorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final viewInsets = MediaQuery.of(context).viewInsets;
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + viewInsets.bottom),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Sheet handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
               Text(
                 widget.initialContent.isEmpty ? 'New reward' : 'Edit reward',
-                style: Theme.of(context).textTheme.titleLarge,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _contentController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Reward content',
                   hintText: 'Order bubble tea',
+                  filled: true,
+                  fillColor: colorScheme.surfaceContainerLow,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: colorScheme.outlineVariant,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
                 maxLines: 3,
+                textInputAction: TextInputAction.done,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Enter reward content.';
@@ -70,41 +108,71 @@ final class _RewardCardEditorSheetState extends State<RewardCardEditorSheet> {
                 },
               ),
               const SizedBox(height: 16),
-              if (widget.lockedRarity == null)
-                DropdownButtonFormField<RewardRarity>(
-                  initialValue: _selectedRarity,
-                  decoration: const InputDecoration(labelText: 'Rarity'),
-                  items: RewardRarity.values
-                      .map((rarity) {
-                        return DropdownMenuItem<RewardRarity>(
-                          value: rarity,
-                          child: Text(_rewardRarityLabel(rarity)),
-                        );
-                      })
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setState(() {
-                      _selectedRarity = value;
-                    });
-                  },
-                )
-              else
-                InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Rarity',
-                    helperText: 'Rarity stays fixed after creation.',
+              if (widget.lockedRarity == null) ...[
+                Text(
+                  'Rarity',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  child: Text(_rewardRarityLabel(_selectedRarity)),
                 ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: RewardRarity.values
+                      .map(
+                        (rarity) => ChoiceChip(
+                          label: Text(_rewardRarityLabel(rarity)),
+                          selected: _selectedRarity == rarity,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedRarity = rarity;
+                            });
+                          },
+                          labelStyle: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ] else ...[
+                Text(
+                  'Rarity',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${_rewardRarityLabel(_selectedRarity)} — fixed after creation',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _submit,
-                  child: Text(widget.submitLabel),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF92552C),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    widget.submitLabel,
+                    style: GoogleFonts.beVietnamPro(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ],

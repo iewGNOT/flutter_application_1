@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/config/domain_enums.dart';
 import '../../domain/reward_card.dart';
@@ -19,83 +20,206 @@ final class RewardCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _rarityColor(card.rarity);
     final canMutate = onEdit != null || onArchive != null;
+    final headerGradient = _rarityGradient(card.rarity);
+    final headerSolid = _raritySolidColor(card.rarity);
+    final badgeTextColor = _rarityBadgeTextColor(card.rarity);
+    final badgeBgColor = _rarityBadgeBgColor(card.rarity);
+    final contentTextColor = _rarityContentColor(card.rarity);
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header area ───────────────────────────────────────────────────
+          Container(
+            height: 130,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: headerGradient,
+              color: headerGradient == null ? headerSolid : null,
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Stack(
               children: [
-                Expanded(
+                // Rarity badge (top right)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBgColor,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      _rewardRarityLabel(card.rarity),
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: badgeTextColor,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                // Content text (bottom left)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 48,
                   child: Text(
                     card.content,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: contentTextColor,
+                      height: 1.3,
+                    ),
                   ),
                 ),
-                if (canMutate)
-                  IconButton(
-                    tooltip: 'Edit reward',
-                    onPressed: isBusy ? null : onEdit,
-                    icon: const Icon(Icons.edit_rounded),
-                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          ),
+          // ── Body area ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+            child: Row(
               children: [
-                Chip(
-                  avatar: Icon(Icons.stars_rounded, color: color),
-                  label: Text(_rewardRarityLabel(card.rarity)),
+                Expanded(
+                  child: canMutate
+                      ? Text(
+                          'Editable until drawn by gacha.',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        )
+                      : Text(
+                          card.drawnAt != null
+                              ? 'Unlocked on ${_dateLabel(card.drawnAt!)}'
+                              : _statusLabel(card.status),
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                 ),
-                Chip(
-                  label: Text(switch (card.status) {
-                    RewardCardStatus.available => 'Available',
-                    RewardCardStatus.drawn => 'Drawn',
-                    RewardCardStatus.redeemed => 'Redeemed',
-                    RewardCardStatus.archived => 'Archived',
-                  }),
-                ),
+                if (canMutate) ...[
+                  TextButton.icon(
+                    onPressed: isBusy ? null : onArchive,
+                    icon: const Icon(Icons.archive_outlined, size: 15),
+                    label: const Text('Archive'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: colorScheme.onSurfaceVariant,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      minimumSize: Size.zero,
+                      textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: IconButton(
+                      tooltip: 'Edit reward',
+                      onPressed: isBusy ? null : onEdit,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        size: 17,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
-            if (canMutate) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Editable before draw. Rarity is fixed after creation.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: isBusy ? null : onArchive,
-                icon: const Icon(Icons.archive_outlined),
-                label: const Text('Archive'),
-              ),
-            ] else if (card.drawnAt != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Unlocked on ${_dateLabel(card.drawnAt!)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-Color _rarityColor(RewardRarity rarity) {
+// ── Rarity styling ─────────────────────────────────────────────────────────────
+
+LinearGradient? _rarityGradient(RewardRarity rarity) {
   return switch (rarity) {
-    RewardRarity.white => const Color(0xFF9E9E9E),
-    RewardRarity.purple => const Color(0xFF7E57C2),
-    RewardRarity.golden => const Color(0xFFE0A800),
-    RewardRarity.red => const Color(0xFFD32F2F),
+    RewardRarity.golden => const LinearGradient(
+      colors: [Color(0xFFF9D377), Color(0xFFEAC56B)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    RewardRarity.red => const LinearGradient(
+      colors: [Color(0xFFFA7150), Color(0xFFB23D21)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    RewardRarity.purple => const LinearGradient(
+      colors: [Color(0xFFEDE7F6), Color(0xFFB39DDB)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    RewardRarity.white => null,
+  };
+}
+
+Color _raritySolidColor(RewardRarity rarity) {
+  return switch (rarity) {
+    RewardRarity.white => const Color(0xFFEAE9DD),
+    _ => Colors.transparent,
+  };
+}
+
+Color _rarityContentColor(RewardRarity rarity) {
+  return switch (rarity) {
+    RewardRarity.golden => const Color(0xFF5F4800),
+    RewardRarity.red => Colors.white,
+    RewardRarity.purple => const Color(0xFF4A148C),
+    RewardRarity.white => const Color(0xFF373831),
+  };
+}
+
+Color _rarityBadgeBgColor(RewardRarity rarity) {
+  return switch (rarity) {
+    RewardRarity.golden => Colors.white.withValues(alpha: 0.35),
+    RewardRarity.red => Colors.white.withValues(alpha: 0.2),
+    RewardRarity.purple => Colors.white.withValues(alpha: 0.5),
+    RewardRarity.white => const Color(0xFF373831).withValues(alpha: 0.08),
+  };
+}
+
+Color _rarityBadgeTextColor(RewardRarity rarity) {
+  return switch (rarity) {
+    RewardRarity.golden => const Color(0xFF5F4800),
+    RewardRarity.red => Colors.white,
+    RewardRarity.purple => const Color(0xFF4A148C),
+    RewardRarity.white => const Color(0xFF64655C),
   };
 }
 
@@ -108,11 +232,18 @@ String _rewardRarityLabel(RewardRarity rarity) {
   };
 }
 
+String _statusLabel(RewardCardStatus status) {
+  return switch (status) {
+    RewardCardStatus.available => 'Available',
+    RewardCardStatus.drawn => 'Drawn',
+    RewardCardStatus.redeemed => 'Redeemed',
+    RewardCardStatus.archived => 'Archived',
+  };
+}
+
 String _dateLabel(DateTime value) {
   final normalized = value.toLocal();
   final month = normalized.month.toString().padLeft(2, '0');
   final day = normalized.day.toString().padLeft(2, '0');
-  final hour = normalized.hour.toString().padLeft(2, '0');
-  final minute = normalized.minute.toString().padLeft(2, '0');
-  return '${normalized.year}-$month-$day $hour:$minute';
+  return '${normalized.year}-$month-$day';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/config/domain_enums.dart';
 
@@ -38,28 +39,64 @@ final class _TaskEditorSheetState extends State<TaskEditorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final viewInsets = MediaQuery.of(context).viewInsets;
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + viewInsets.bottom),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Sheet handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
               Text(
                 widget.initialTitle.isEmpty ? 'New task' : 'Edit task',
-                style: Theme.of(context).textTheme.titleLarge,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _titleController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Task title',
                   hintText: 'Write an essay draft',
+                  filled: true,
+                  fillColor: colorScheme.surfaceContainerLow,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: colorScheme.outlineVariant,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
                 textInputAction: TextInputAction.done,
                 validator: (value) {
@@ -70,32 +107,52 @@ final class _TaskEditorSheetState extends State<TaskEditorSheet> {
                 },
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<TaskCategory>(
-                initialValue: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: TaskCategory.values
-                    .map((category) {
-                      return DropdownMenuItem<TaskCategory>(
-                        value: category,
-                        child: Text(_taskCategoryLabel(category)),
-                      );
-                    })
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
+              Text(
+                'Category',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: TaskCategory.values
+                    .map(
+                      (category) => ChoiceChip(
+                        label: Text(_taskCategoryLabel(category)),
+                        selected: _selectedCategory == category,
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+                        },
+                        labelStyle: GoogleFonts.beVietnamPro(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _submit,
-                  child: Text(widget.submitLabel),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF92552C),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    widget.submitLabel,
+                    style: GoogleFonts.beVietnamPro(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -130,7 +187,7 @@ String _taskCategoryLabel(TaskCategory category) {
   return switch (category) {
     TaskCategory.study => 'Study',
     TaskCategory.exercise => 'Exercise',
-    TaskCategory.deepWork => 'Deep work',
+    TaskCategory.deepWork => 'Deep Work',
     TaskCategory.creative => 'Creative',
     TaskCategory.general => 'General',
   };
