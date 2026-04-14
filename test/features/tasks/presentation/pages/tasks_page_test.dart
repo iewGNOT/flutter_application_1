@@ -70,10 +70,16 @@ void main() {
     expect(find.text('Write final release notes'), findsOneWidget);
     expect(find.text('Task updated.'), findsOneWidget);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -360));
+    await tester.pumpAndSettle();
+    expect(find.text('Focus'), findsOneWidget);
     await tester.tap(find.text('Focus'));
     await tester.pumpAndSettle();
+    expect(find.text('Start focus session'), findsOneWidget);
+    await tester.ensureVisible(find.text('45 min'));
     await tester.tap(find.text('45 min'));
     await tester.pumpAndSettle();
+    expect(find.text('Start session'), findsOneWidget);
     await tester.tap(find.text('Start session'));
     await tester.pumpAndSettle();
 

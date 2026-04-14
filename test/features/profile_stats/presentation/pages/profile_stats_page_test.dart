@@ -74,7 +74,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Nova'), findsOneWidget);
-      expect(find.text('Level 4 - 340 XP'), findsOneWidget);
+      expect(find.textContaining('Level 4 - 340 XP'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Completed 25 minute focus session'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Completed 25 minute focus session'), findsOneWidget);
       expect(find.text('Achievements'), findsOneWidget);
     },

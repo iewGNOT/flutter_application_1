@@ -62,9 +62,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Reward content'),
       'Buy a new game',
     );
-    await tester.tap(find.text('Save reward'));
+    final saveRewardButton = find.widgetWithText(FilledButton, 'Save reward');
+    await tester.ensureVisible(saveRewardButton);
+    await tester.tap(saveRewardButton);
     await tester.pumpAndSettle();
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
+    await tester.pumpAndSettle();
     expect(find.text('Buy a new game'), findsOneWidget);
     expect(find.text('Reward card created.'), findsOneWidget);
     expect(find.text('White'), findsOneWidget);
@@ -75,9 +79,13 @@ void main() {
       find.widgetWithText(TextFormField, 'Reward content'),
       'Buy a new game soundtrack',
     );
-    await tester.tap(find.text('Save changes'));
+    final saveChangesButton = find.widgetWithText(FilledButton, 'Save changes');
+    await tester.ensureVisible(saveChangesButton);
+    await tester.tap(saveChangesButton);
     await tester.pumpAndSettle();
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
+    await tester.pumpAndSettle();
     expect(find.text('Buy a new game soundtrack'), findsOneWidget);
     expect(find.text('Reward card updated.'), findsOneWidget);
   });

@@ -89,6 +89,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Gacha preview'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Single draw - 160 points'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Single draw - 160 points'), findsOneWidget);
 
       await tester.tap(find.text('Single draw - 160 points'));
@@ -125,6 +131,12 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Ten draw is locked until at least 10 rewards are available.'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.text('Ten draw is locked until at least 10 rewards are available.'),
       findsOneWidget,

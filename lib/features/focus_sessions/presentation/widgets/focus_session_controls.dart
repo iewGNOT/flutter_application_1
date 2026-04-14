@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_section_card.dart';
+import '../../../../app/widgets/app_section_header.dart';
 import '../../application/focus_session_runtime_controller.dart';
 import '../controllers/focus_session_controller.dart';
 
@@ -28,50 +30,63 @@ final class FocusSessionControls extends StatelessWidget {
     final canStop = state.canStop && !state.isMutating;
     final canComplete = state.canCompleteAt(now) && !state.isMutating;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Session controls',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton.icon(
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppSectionHeader(
+            title: 'Session controls',
+            subtitle:
+                'Controls stay in sync with persisted runtime state, so disabled actions reflect the real workflow rules.',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: canPause ? onPause : null,
                   icon: const Icon(Icons.pause_rounded),
                   label: const Text('Pause session'),
                 ),
-                FilledButton.icon(
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
                   onPressed: canResume ? onResume : null,
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Resume session'),
+                  label: const Text('Resume'),
                 ),
-                FilledButton.tonalIcon(
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.tonalIcon(
                   onPressed: canComplete ? onComplete : null,
                   icon: const Icon(Icons.done_all_rounded),
-                  label: const Text('Complete session'),
+                  label: const Text('Complete'),
                 ),
-                TextButton.icon(
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextButton.icon(
                   onPressed: canStop ? onStop : null,
                   icon: const Icon(Icons.stop_circle_outlined),
                   label: const Text('Stop early'),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _controlHint(state, now),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              _controlHint(state, now),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

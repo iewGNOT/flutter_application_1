@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/error/app_failure.dart';
 import '../../core/error/failure_message_mapper.dart';
+import 'app_section_card.dart';
 
 final class AppErrorState extends StatelessWidget {
   const AppErrorState({
@@ -39,28 +40,48 @@ final class AppErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: Text(retryLabel),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: AppSectionCard(
+          padding: const EdgeInsets.all(24),
+          borderColor: colorScheme.error.withValues(alpha: 0.22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Icon(icon, size: 28, color: colorScheme.error),
+                ),
               ),
+              const SizedBox(height: 16),
+              Text('Something went wrong', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (onRetry != null) ...[
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(retryLabel),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

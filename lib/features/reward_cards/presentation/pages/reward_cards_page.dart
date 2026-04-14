@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/widgets/app_async_value_view.dart';
 import '../../../../app/widgets/app_empty_state.dart';
+import '../../../../app/widgets/app_metric_tile.dart';
+import '../../../../app/widgets/app_section_card.dart';
+import '../../../../app/widgets/app_section_header.dart';
+import '../../../../app/widgets/app_status_banner.dart';
 import '../../domain/reward_card.dart';
 import '../controllers/reward_cards_controller.dart';
 import '../widgets/reward_card_editor_sheet.dart';
@@ -65,23 +69,38 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
                 onRefresh: controller.refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                   children: [
                     _RewardSummaryCard(
                       availableCount: state.availableCount,
                       unlockedCount: state.drawnCount,
                     ),
-                    const SizedBox(height: 16),
-                    const _SectionHeader(
-                      title: 'Available pool',
-                      subtitle: 'Editable until drawn by gacha.',
+                    const SizedBox(height: 18),
+                    const AppStatusBanner(
+                      title: 'Reward pool rules',
+                      message:
+                          'Content can be edited before a draw. Rarity stays fixed after creation, and unlocked rewards leave the available pool immediately.',
+                      tone: AppStatusBannerTone.info,
+                      icon: Icons.rule_rounded,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 24),
+                    const AppSectionHeader(
+                      eyebrow: 'Pool',
+                      title: 'Available rewards',
+                      subtitle:
+                          'These are still eligible for future gacha rolls and can be tuned before they are unlocked.',
+                    ),
+                    const SizedBox(height: 12),
                     if (state.availableCards.isEmpty)
-                      const _RewardCardsEmptyState(
-                        title: 'No available rewards.',
+                      _RewardCardsEmptyState(
+                        title: 'No reward cards yet',
                         message:
-                            'Add reward cards here so the gacha pool has something to draw.',
+                            'Create your first reward so the gacha pool has something personal to unlock.',
+                        action: FilledButton.icon(
+                          onPressed: _createRewardCard,
+                          icon: const Icon(Icons.add_card_rounded),
+                          label: const Text('Create first reward'),
+                        ),
                       )
                     else
                       ...state.availableCards.map(
@@ -95,17 +114,19 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
                           ),
                         ),
                       ),
-                    const SizedBox(height: 24),
-                    const _SectionHeader(
+                    const SizedBox(height: 28),
+                    const AppSectionHeader(
+                      eyebrow: 'Collection',
                       title: 'Unlocked rewards',
-                      subtitle: 'Already removed from the available pool.',
+                      subtitle:
+                          'Drawn rewards stay here as a clean history of what the gacha has already awarded.',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     if (state.unlockedCards.isEmpty)
                       const _RewardCardsEmptyState(
-                        title: 'No unlocked rewards yet.',
+                        title: 'No unlocked rewards yet',
                         message:
-                            'Draw rewards from the gacha page to populate this history.',
+                            'Complete tasks and focus sessions, then spend points on the gacha page to fill this collection.',
                       )
                     else
                       ...state.unlockedCards.map(
@@ -140,6 +161,8 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
     final result = await showModalBottomSheet<RewardCardEditorResult>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) => const RewardCardEditorSheet(),
     );
     if (result == null) {
@@ -155,6 +178,8 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
     final result = await showModalBottomSheet<RewardCardEditorResult>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) => RewardCardEditorSheet(
         initialContent: card.content,
         lockedRarity: card.rarity,
@@ -175,7 +200,9 @@ final class _RewardCardsPageState extends ConsumerState<RewardCardsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Archive reward?'),
-        content: Text('Remove "${card.content}" from the available pool?'),
+        content: Text(
+          'Remove "${card.content}" from the available pool? This keeps history intact, but it will no longer be eligible for draws.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -207,96 +234,75 @@ final class _RewardSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: _RewardCounter(
-                label: 'Available',
-                value: '$availableCount',
-                icon: Icons.casino_rounded,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _RewardCounter(
-                label: 'Unlocked',
-                value: '$unlockedCount',
-                icon: Icons.emoji_events_rounded,
-              ),
-            ),
-          ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return AppSectionCard(
+      color: Color.alphaBlend(
+        colorScheme.secondary.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.14 : 0.07,
         ),
+        colorScheme.surfaceContainerLowest,
+      ),
+      borderColor: colorScheme.secondary.withValues(alpha: 0.18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppSectionHeader(
+            eyebrow: 'Rewards',
+            title: 'Build a pool worth unlocking',
+            subtitle:
+                'Reward cards stay tidy and personal: available cards feed the pool, while unlocked ones become a collectible history.',
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: AppMetricTile(
+                  label: 'Available',
+                  value: '$availableCount',
+                  helper: 'Eligible for draws',
+                  icon: Icons.layers_rounded,
+                  accentColor: colorScheme.secondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppMetricTile(
+                  label: 'Unlocked',
+                  value: '$unlockedCount',
+                  helper: 'Already drawn',
+                  icon: Icons.workspace_premium_rounded,
+                  accentColor: colorScheme.tertiary,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-final class _RewardCounter extends StatelessWidget {
-  const _RewardCounter({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon),
-        const SizedBox(height: 8),
-        Text(label, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-}
-
-final class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 4),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-}
-
 final class _RewardCardsEmptyState extends StatelessWidget {
-  const _RewardCardsEmptyState({required this.title, required this.message});
+  const _RewardCardsEmptyState({
+    required this.title,
+    required this.message,
+    this.action,
+  });
 
   final String title;
   final String message;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return AppSectionCard(
       child: AppEmptyState(
         title: title,
         message: message,
-        padding: const EdgeInsets.all(24),
+        icon: Icons.card_giftcard_rounded,
+        action: action,
       ),
     );
   }

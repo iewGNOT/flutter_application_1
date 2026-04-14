@@ -25,14 +25,14 @@ final class AppShell extends StatelessWidget {
       icon: Icons.timer_rounded,
     ),
     _Destination(
-      route: AppRoute.gacha,
-      label: 'Gacha',
-      icon: Icons.casino_rounded,
-    ),
-    _Destination(
       route: AppRoute.rewardCards,
       label: 'Rewards',
       icon: Icons.card_giftcard_rounded,
+    ),
+    _Destination(
+      route: AppRoute.gacha,
+      label: 'Gacha',
+      icon: Icons.casino_rounded,
     ),
     _Destination(
       route: AppRoute.profileStats,
@@ -56,20 +56,25 @@ final class AppShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(location);
 
     return Scaffold(
+      extendBody: true,
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) {
-          context.go(_destinations[index].route.path);
-        },
-        destinations: _destinations
-            .map(
-              (d) => NavigationDestination(
-                icon: Icon(d.icon),
-                label: d.label,
-              ),
-            )
-            .toList(growable: false),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) {
+            context.go(_destinations[index].route.path);
+          },
+          destinations: _destinations
+              .map(
+                (d) => NavigationDestination(
+                  icon: Icon(d.icon),
+                  selectedIcon: Icon(d.icon),
+                  label: d.label,
+                ),
+              )
+              .toList(growable: false),
+        ),
       ),
     );
   }

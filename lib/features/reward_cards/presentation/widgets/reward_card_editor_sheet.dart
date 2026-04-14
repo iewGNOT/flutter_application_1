@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_rarity_badge.dart';
+import '../../../../app/widgets/app_section_card.dart';
 import '../../../../core/config/domain_enums.dart';
 
 final class RewardCardEditorSheet extends StatefulWidget {
@@ -39,10 +41,11 @@ final class _RewardCardEditorSheetState extends State<RewardCardEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final isEditing = widget.initialContent.isNotEmpty;
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + viewInsets.bottom),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + viewInsets.bottom),
         child: Form(
           key: _formKey,
           child: Column(
@@ -50,54 +53,112 @@ final class _RewardCardEditorSheetState extends State<RewardCardEditorSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.initialContent.isEmpty ? 'New reward' : 'Edit reward',
+                isEditing ? 'Edit reward' : 'New reward',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _contentController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Reward content',
-                  hintText: 'Order bubble tea',
+              const SizedBox(height: 8),
+              Text(
+                isEditing
+                    ? 'Adjust the reward wording while keeping the existing rarity intact.'
+                    : 'Create a reward that feels personal, motivating, and worth unlocking later.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Enter reward content.';
-                  }
-                  return null;
-                },
+              ),
+              const SizedBox(height: 18),
+              AppSectionCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Reward preview'),
+                    const SizedBox(height: 10),
+                    AppRarityBadge(rarity: _selectedRarity),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _contentController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Reward content',
+                        hintText: 'Order bubble tea',
+                        helperText:
+                            'Keep it specific enough to feel satisfying when it unlocks.',
+                      ),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Enter reward content.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               if (widget.lockedRarity == null)
-                DropdownButtonFormField<RewardRarity>(
-                  initialValue: _selectedRarity,
-                  decoration: const InputDecoration(labelText: 'Rarity'),
-                  items: RewardRarity.values
-                      .map((rarity) {
-                        return DropdownMenuItem<RewardRarity>(
-                          value: rarity,
-                          child: Text(_rewardRarityLabel(rarity)),
-                        );
-                      })
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    setState(() {
-                      _selectedRarity = value;
-                    });
-                  },
+                AppSectionCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rarity',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Pick the feeling you want the reward to carry. This will stay fixed after creation.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: RewardRarity.values
+                            .map((rarity) {
+                              final selected = rarity == _selectedRarity;
+                              return ChoiceChip(
+                                selected: selected,
+                                label: Text(_rewardRarityLabel(rarity)),
+                                avatar: selected
+                                    ? const Icon(Icons.check)
+                                    : null,
+                                onSelected: (_) {
+                                  setState(() {
+                                    _selectedRarity = rarity;
+                                  });
+                                },
+                              );
+                            })
+                            .toList(growable: false),
+                      ),
+                    ],
+                  ),
                 )
               else
-                InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Rarity',
-                    helperText: 'Rarity stays fixed after creation.',
+                AppSectionCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rarity',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      AppRarityBadge(rarity: _selectedRarity),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Rarity stays fixed after creation so existing pool probabilities remain trustworthy.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(_rewardRarityLabel(_selectedRarity)),
                 ),
               const SizedBox(height: 20),
               SizedBox(

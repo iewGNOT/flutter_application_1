@@ -168,16 +168,17 @@ The architecture should remain extensible for future additions such as:
 - targeted widget tests for dashboard, tasks, reward cards, and profile screens
 - targeted widget tests for the focus-session runtime screen
 - targeted widget tests for the gacha screen
+- 2026-04-13 UI refinement pass across dashboard, tasks, focus, rewards, gacha, profile, and shared app widgets
+- mobile-first navigation shell polish, upgraded theme tokens, and reusable section/metric/status/rarity presentation components
 
 ### Partially done
-- theme and routing are usable and intentionally minimal
+- motion and transition polish remain intentionally restrained
 - the test suite is now materially broader, but platform-specific and polish-focused coverage can still expand later
 
 ### Still placeholder / shell-only
 - `lib/features/wallet/presentation/controllers/wallet_controller.dart` (if still present and unused in the current UI flow)
 
 ### Not started yet
-- polished screen implementations and transitions
 - repository/database test suite
 - end-to-end integration tests
 - final platform/setup notes and run instructions
@@ -726,3 +727,63 @@ Verification completed:
 - `flutter analyze`: passed on 2026-04-12
 - Full `flutter test` suite: 48/48 passed on 2026-04-12
 - Tested on iPhone 17 Pro simulator (iOS 26.4) with Xcode 26.4
+
+### 2026-04-13 - UI refinement pass
+
+Refined the existing presentation layer without changing domain, data, persistence, repository, or business-rule code:
+
+- upgraded the shared app theme with calmer premium surfaces, stronger mobile navigation treatment, improved input/button/chip/dialog styling, and dark-mode-aware section hierarchy
+- added shared section, header, metric, status-banner, and rarity-badge widgets under `lib/app/widgets` and applied them across the implemented screens
+- polished dashboard, tasks, and focus screens for cleaner hierarchy, tighter spacing, clearer action affordances, and more readable timer/state surfaces
+- polished reward cards, gacha, and profile screens for stronger rarity treatment, improved grouped sections, cleaner summary cards, and more consistent empty/error/loading presentation
+- kept the work scoped to presentation/theme files only; no lower-layer production files were touched
+- updated the affected widget tests to match the refined mobile layouts and the visible copy/viewport changes introduced by the UI pass
+
+Files changed:
+
+- `lib/app/routing/app_shell.dart`
+- `lib/app/theme/app_theme.dart`
+- `lib/app/widgets/app_empty_state.dart`
+- `lib/app/widgets/app_error_state.dart`
+- `lib/app/widgets/app_loading_state.dart`
+- `lib/app/widgets/app_metric_tile.dart`
+- `lib/app/widgets/app_rarity_badge.dart`
+- `lib/app/widgets/app_section_card.dart`
+- `lib/app/widgets/app_section_header.dart`
+- `lib/app/widgets/app_status_banner.dart`
+- `lib/features/dashboard/presentation/pages/dashboard_page.dart`
+- `lib/features/dashboard/presentation/widgets/dashboard_summary_card.dart`
+- `lib/features/tasks/presentation/pages/tasks_page.dart`
+- `lib/features/tasks/presentation/widgets/task_editor_sheet.dart`
+- `lib/features/tasks/presentation/widgets/task_list_item.dart`
+- `lib/features/focus_sessions/presentation/pages/focus_session_page.dart`
+- `lib/features/focus_sessions/presentation/widgets/focus_session_controls.dart`
+- `lib/features/focus_sessions/presentation/widgets/focus_session_recent_sessions_section.dart`
+- `lib/features/focus_sessions/presentation/widgets/focus_session_status_card.dart`
+- `lib/features/reward_cards/presentation/pages/reward_cards_page.dart`
+- `lib/features/reward_cards/presentation/widgets/reward_card_editor_sheet.dart`
+- `lib/features/reward_cards/presentation/widgets/reward_card_tile.dart`
+- `lib/features/gacha/presentation/pages/gacha_draw_page.dart`
+- `lib/features/gacha/presentation/widgets/gacha_cost_summary.dart`
+- `lib/features/gacha/presentation/widgets/gacha_result_dialog.dart`
+- `lib/features/profile_stats/presentation/pages/profile_stats_page.dart`
+- `lib/features/profile_stats/presentation/widgets/achievement_list_section.dart`
+- `lib/features/profile_stats/presentation/widgets/activity_history_section.dart`
+- `lib/features/profile_stats/presentation/widgets/character_stats_card.dart`
+- `test/features/dashboard/presentation/pages/dashboard_page_test.dart`
+- `test/features/tasks/presentation/pages/tasks_page_test.dart`
+- `test/features/reward_cards/presentation/pages/reward_cards_page_test.dart`
+- `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+- `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
+- `test/features/profile_stats/presentation/pages/profile_stats_page_test.dart`
+
+Verification completed:
+
+- `flutter analyze`: passed on 2026-04-13
+- relevant widget tests: passed on 2026-04-13
+  - `test/features/dashboard/presentation/pages/dashboard_page_test.dart`
+  - `test/features/tasks/presentation/pages/tasks_page_test.dart`
+  - `test/features/reward_cards/presentation/pages/reward_cards_page_test.dart`
+  - `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+  - `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
+  - `test/features/profile_stats/presentation/pages/profile_stats_page_test.dart`

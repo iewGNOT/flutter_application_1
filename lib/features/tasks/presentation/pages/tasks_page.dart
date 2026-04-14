@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/routing/app_route.dart';
 import '../../../../app/widgets/app_async_value_view.dart';
 import '../../../../app/widgets/app_empty_state.dart';
+import '../../../../app/widgets/app_metric_tile.dart';
+import '../../../../app/widgets/app_section_card.dart';
+import '../../../../app/widgets/app_section_header.dart';
 import '../../domain/task.dart';
 import '../controllers/tasks_controller.dart';
 import '../widgets/task_editor_sheet.dart';
@@ -67,12 +70,12 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
                 onRefresh: controller.refresh,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                   children: [
                     _TasksOverviewCard(taskCount: state.activeTaskCount),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     if (state.tasks.isEmpty)
-                      const _TasksEmptyState()
+                      _TasksEmptyState(onCreateTask: _createTask)
                     else
                       ...state.tasks.map(
                         (task) => Padding(
@@ -108,6 +111,8 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
     final result = await showModalBottomSheet<TaskEditorResult>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) => const TaskEditorSheet(),
     );
     if (result == null) {
@@ -123,6 +128,8 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
     final result = await showModalBottomSheet<TaskEditorResult>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) => TaskEditorSheet(
         initialTitle: task.title,
         initialCategory: task.category,
@@ -198,48 +205,48 @@ final class _TasksOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.assignment_turned_in_rounded, size: 32),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Active tasks',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$taskCount ready for focus or completion.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSectionHeader(
+            eyebrow: 'Tasks',
+            title: 'Move one concrete step at a time',
+            subtitle:
+                '$taskCount active tasks are ready for focused work or quick completion.',
+          ),
+          const SizedBox(height: 18),
+          AppMetricTile(
+            label: 'Active tasks',
+            value: '$taskCount',
+            helper: 'Clear next actions keep the loop readable.',
+            icon: Icons.assignment_turned_in_rounded,
+          ),
+        ],
       ),
     );
   }
 }
 
 final class _TasksEmptyState extends StatelessWidget {
-  const _TasksEmptyState();
+  const _TasksEmptyState({required this.onCreateTask});
+
+  final VoidCallback onCreateTask;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: const AppEmptyState(
+    return AppSectionCard(
+      child: AppEmptyState(
         title: 'No active tasks yet.',
         message:
             'Add a task, then launch a focus session or mark it complete here.',
         icon: Icons.playlist_add_check_circle_rounded,
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(8),
+        action: FilledButton.tonalIcon(
+          onPressed: onCreateTask,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add your first task'),
+        ),
       ),
     );
   }
@@ -268,7 +275,7 @@ final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,9 +284,14 @@ final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
               'Start focus session',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
-            const Text('Choose the planned duration for this task.'),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Text(
+              'Choose a planned duration. The timer screen will enforce pause, completion, and foreground rules from persisted session state.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 18),
             Wrap(
               spacing: 8,
               runSpacing: 8,

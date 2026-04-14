@@ -29,7 +29,13 @@ void main() {
     expect(find.text('Current balance'), findsOneWidget);
     expect(find.text('240'), findsOneWidget);
     expect(find.text('5 day streak'), findsOneWidget);
-    expect(find.text('Quick actions'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Jump back in'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Jump back in'), findsOneWidget);
     expect(find.text('Rewards'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
   });

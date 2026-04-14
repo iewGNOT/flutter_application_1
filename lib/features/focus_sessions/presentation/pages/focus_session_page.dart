@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/routing/app_route.dart';
 import '../../../../app/widgets/app_async_value_view.dart';
+import '../../../../app/widgets/app_section_card.dart';
+import '../../../../app/widgets/app_section_header.dart';
+import '../../../../app/widgets/app_status_banner.dart';
 import '../../application/focus_session_runtime_controller.dart';
 import '../controllers/focus_session_controller.dart';
 import '../widgets/focus_session_controls.dart';
@@ -71,7 +74,7 @@ final class _FocusSessionPageState extends ConsumerState<FocusSessionPage> {
                   onRefresh: controller.refresh,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                     children: [
                       _ActionFeedbackCard(feedback: state.lastFeedback),
                       if (state.lastFeedback != null)
@@ -136,30 +139,12 @@ final class _ActionFeedbackCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final tone = currentFeedback.isError
-        ? colorScheme.errorContainer
-        : colorScheme.primaryContainer;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: tone,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              currentFeedback.isError
-                  ? Icons.error_outline_rounded
-                  : Icons.info_rounded,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(currentFeedback.message)),
-          ],
-        ),
-      ),
+    return AppStatusBanner(
+      title: currentFeedback.isError ? 'Action blocked' : 'Session update',
+      message: currentFeedback.message,
+      tone: currentFeedback.isError
+          ? AppStatusBannerTone.error
+          : AppStatusBannerTone.info,
     );
   }
 }
@@ -169,29 +154,23 @@ final class _IdleFocusSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'No active focus session',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Start a session from the Tasks page. Persisted state will drive pause, resume, failure, and completion behavior here.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => _goTo(context, AppRoute.tasks.path),
-              icon: const Icon(Icons.checklist_rounded),
-              label: const Text('Go to tasks'),
-            ),
-          ],
-        ),
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppSectionHeader(
+            eyebrow: 'Focus',
+            title: 'No active focus session',
+            subtitle:
+                'Start from Tasks to launch a persisted session. Pause, completion, failure, and restart recovery are all driven from saved state.',
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () => _goTo(context, AppRoute.tasks.path),
+            icon: const Icon(Icons.checklist_rounded),
+            label: const Text('Go to tasks'),
+          ),
+        ],
       ),
     );
   }
@@ -217,18 +196,13 @@ final class _FocusSessionGuidanceCard extends StatelessWidget {
       _ => 'Session state is synchronized from persistence.',
     };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.rule_rounded),
-            const SizedBox(width: 12),
-            Expanded(child: Text(note)),
-          ],
-        ),
-      ),
+    return AppStatusBanner(
+      title: 'Session rules',
+      message: note,
+      tone: state.runtimeState == FocusSessionRuntimeState.paused
+          ? AppStatusBannerTone.warning
+          : AppStatusBannerTone.info,
+      icon: Icons.rule_rounded,
     );
   }
 }

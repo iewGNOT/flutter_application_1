@@ -41,8 +41,8 @@ final class _TaskEditorSheetState extends State<TaskEditorSheet> {
     final viewInsets = MediaQuery.of(context).viewInsets;
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + viewInsets.bottom),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + viewInsets.bottom),
         child: Form(
           key: _formKey,
           child: Column(
@@ -53,7 +53,14 @@ final class _TaskEditorSheetState extends State<TaskEditorSheet> {
                 widget.initialTitle.isEmpty ? 'New task' : 'Edit task',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
+              Text(
+                'Keep the title specific, then choose the category that best matches the effort you want to reward.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _titleController,
                 autofocus: true,
@@ -69,28 +76,27 @@ final class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<TaskCategory>(
-                initialValue: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: TaskCategory.values
-                    .map((category) {
-                      return DropdownMenuItem<TaskCategory>(
-                        value: category,
-                        child: Text(_taskCategoryLabel(category)),
-                      );
-                    })
+              const SizedBox(height: 18),
+              Text('Category', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: TaskCategory.values
+                    .map(
+                      (category) => ChoiceChip(
+                        label: Text(_taskCategoryLabel(category)),
+                        selected: _selectedCategory == category,
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+                        },
+                      ),
+                    )
                     .toList(growable: false),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedCategory = value;
-                  });
-                },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(

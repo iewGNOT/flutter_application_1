@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_rarity_badge.dart';
+import '../../../../app/widgets/app_section_card.dart';
 import '../../../../core/config/domain_enums.dart';
 import '../../domain/reward_card.dart';
 
@@ -19,70 +21,131 @@ final class RewardCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _rarityColor(card.rarity);
+    final theme = Theme.of(context);
+    final accent = appRarityAccent(context, card.rarity);
     final canMutate = onEdit != null || onArchive != null;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return AppSectionCard(
+      color: appRaritySurface(context, card.rarity),
+      borderColor: accent.withValues(alpha: 0.22),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: appRarityContainer(context, card.rarity),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.card_giftcard_rounded,
+                    color: accent,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      card.content,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        AppRarityBadge(rarity: card.rarity, compact: true),
+                        _RewardStatusBadge(status: card.status),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (canMutate)
+                IconButton(
+                  tooltip: 'Edit reward',
+                  onPressed: isBusy ? null : onEdit,
+                  icon: const Icon(Icons.edit_rounded),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _supportingCopy(card),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (canMutate) ...[
+            const SizedBox(height: 16),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    card.content,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                if (canMutate)
-                  IconButton(
-                    tooltip: 'Edit reward',
+                  child: OutlinedButton.icon(
                     onPressed: isBusy ? null : onEdit,
                     icon: const Icon(Icons.edit_rounded),
+                    label: const Text('Edit content'),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  avatar: Icon(Icons.stars_rounded, color: color),
-                  label: Text(_rewardRarityLabel(card.rarity)),
                 ),
-                Chip(
-                  label: Text(switch (card.status) {
-                    RewardCardStatus.available => 'Available',
-                    RewardCardStatus.drawn => 'Drawn',
-                    RewardCardStatus.redeemed => 'Redeemed',
-                    RewardCardStatus.archived => 'Archived',
-                  }),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: isBusy ? null : onArchive,
+                    icon: const Icon(Icons.archive_outlined),
+                    label: const Text('Archive'),
+                  ),
                 ),
               ],
             ),
-            if (canMutate) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Editable before draw. Rarity is fixed after creation.',
-                style: Theme.of(context).textTheme.bodySmall,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+final class _RewardStatusBadge extends StatelessWidget {
+  const _RewardStatusBadge({required this.status});
+
+  final RewardCardStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = _statusColor(context, status);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: tone.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.18 : 0.12,
+        ),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tone.withValues(alpha: 0.26)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_statusIcon(status), size: 14, color: tone),
+            const SizedBox(width: 6),
+            Text(
+              _statusLabel(status),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: tone,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: isBusy ? null : onArchive,
-                icon: const Icon(Icons.archive_outlined),
-                label: const Text('Archive'),
-              ),
-            ] else if (card.drawnAt != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Unlocked on ${_dateLabel(card.drawnAt!)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+            ),
           ],
         ),
       ),
@@ -90,21 +153,45 @@ final class RewardCardTile extends StatelessWidget {
   }
 }
 
-Color _rarityColor(RewardRarity rarity) {
-  return switch (rarity) {
-    RewardRarity.white => const Color(0xFF9E9E9E),
-    RewardRarity.purple => const Color(0xFF7E57C2),
-    RewardRarity.golden => const Color(0xFFE0A800),
-    RewardRarity.red => const Color(0xFFD32F2F),
+String _supportingCopy(RewardCard card) {
+  return switch (card.status) {
+    RewardCardStatus.available =>
+      'Editable before draw. Rarity stays fixed after creation so the pool remains predictable.',
+    RewardCardStatus.drawn when card.drawnAt != null =>
+      'Unlocked on ${_dateLabel(card.drawnAt!)} and removed from the active pool.',
+    RewardCardStatus.drawn => 'Unlocked and removed from the active pool.',
+    RewardCardStatus.redeemed =>
+      'Already redeemed. This reward remains in history but is no longer available.',
+    RewardCardStatus.archived =>
+      'Archived from the available pool and kept only for record-keeping.',
   };
 }
 
-String _rewardRarityLabel(RewardRarity rarity) {
-  return switch (rarity) {
-    RewardRarity.white => 'White',
-    RewardRarity.purple => 'Purple',
-    RewardRarity.golden => 'Golden',
-    RewardRarity.red => 'Red',
+String _statusLabel(RewardCardStatus status) {
+  return switch (status) {
+    RewardCardStatus.available => 'Available',
+    RewardCardStatus.drawn => 'Unlocked',
+    RewardCardStatus.redeemed => 'Redeemed',
+    RewardCardStatus.archived => 'Archived',
+  };
+}
+
+IconData _statusIcon(RewardCardStatus status) {
+  return switch (status) {
+    RewardCardStatus.available => Icons.check_circle_outline_rounded,
+    RewardCardStatus.drawn => Icons.auto_awesome_rounded,
+    RewardCardStatus.redeemed => Icons.verified_rounded,
+    RewardCardStatus.archived => Icons.inventory_2_outlined,
+  };
+}
+
+Color _statusColor(BuildContext context, RewardCardStatus status) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (status) {
+    RewardCardStatus.available => colorScheme.secondary,
+    RewardCardStatus.drawn => colorScheme.primary,
+    RewardCardStatus.redeemed => const Color(0xFF2E8B57),
+    RewardCardStatus.archived => colorScheme.onSurfaceVariant,
   };
 }
 

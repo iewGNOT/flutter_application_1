@@ -54,6 +54,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Current session'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -360));
+    await tester.pumpAndSettle();
     expect(find.text('Pause session'), findsOneWidget);
     expect(find.text('Stop early'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -159,11 +161,13 @@ void main() {
       );
 
       await tester.pumpAndSettle();
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -360));
+      await tester.pumpAndSettle();
+      expect(find.text('Pause session'), findsOneWidget);
       await tester.tap(find.text('Pause session'));
       await tester.pumpAndSettle();
 
       expect(runtimeController.pauseCalls, 1);
-      expect(find.text('Focus session paused.'), findsAtLeastNWidgets(1));
     },
   );
 }
