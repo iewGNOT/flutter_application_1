@@ -43,9 +43,7 @@ final class AppAsyncValueView<T> extends StatelessWidget {
             fallbackMessage: fallbackErrorMessage,
             onRetry: onRetry == null
                 ? null
-                : () {
-                    onRetry!.call();
-                  },
+                : () => unawaited(Future.sync(onRetry!)),
           ),
       data: (data) => builder(context, data),
     );

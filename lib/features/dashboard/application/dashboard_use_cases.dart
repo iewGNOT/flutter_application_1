@@ -1,3 +1,4 @@
+import '../../../core/error/app_failure.dart';
 import '../../../core/result/result.dart';
 import '../../profile_stats/domain/profile_stats_repository.dart';
 import '../../reward_cards/domain/reward_card_repository.dart';
@@ -25,25 +26,37 @@ final class GetDashboardSummaryUseCase {
     final balanceResult = await _walletRepository.getBalance();
     final balance = balanceResult.valueOrNull;
     if (balance == null) {
-      return Failure(balanceResult.failureOrNull!);
+      return Failure(
+        balanceResult.failureOrNull ??
+            const PersistenceFailure('Failed to load balance.'),
+      );
     }
 
     final streakResult = await _profileStatsRepository.getStreak();
     final streak = streakResult.valueOrNull;
     if (streak == null) {
-      return Failure(streakResult.failureOrNull!);
+      return Failure(
+        streakResult.failureOrNull ??
+            const PersistenceFailure('Failed to load streak.'),
+      );
     }
 
     final rewardCountResult = await _rewardCardRepository.countAvailable();
     final rewardCount = rewardCountResult.valueOrNull;
     if (rewardCount == null) {
-      return Failure(rewardCountResult.failureOrNull!);
+      return Failure(
+        rewardCountResult.failureOrNull ??
+            const PersistenceFailure('Failed to load reward count.'),
+      );
     }
 
     final tasksResult = await _taskRepository.listActiveTasks();
     final tasks = tasksResult.valueOrNull;
     if (tasks == null) {
-      return Failure(tasksResult.failureOrNull!);
+      return Failure(
+        tasksResult.failureOrNull ??
+            const PersistenceFailure('Failed to load tasks.'),
+      );
     }
 
     return Success(

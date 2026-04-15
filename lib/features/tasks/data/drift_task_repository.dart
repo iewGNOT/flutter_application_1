@@ -102,13 +102,17 @@ final class DriftTaskRepository implements TaskRepository {
         }
 
         final now = DateTime.now().toUtc();
-        await save(
+        final saveResult = await save(
           task.copyWith(
             status: TaskStatus.archived,
             archivedAt: now,
             updatedAt: now,
           ),
         );
+        if (saveResult.isFailure) {
+          throw saveResult.failureOrNull ??
+              const PersistenceFailure('Failed to archive task.');
+        }
         return unit;
       },
     );

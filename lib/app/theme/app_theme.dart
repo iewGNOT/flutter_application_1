@@ -151,8 +151,19 @@ abstract final class LifeGachaTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: colorScheme.surface,
       textTheme: _textTheme(),
-      appBarTheme: const AppBarTheme(centerTitle: false),
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.primary,
+        ),
+      ),
       cardTheme: CardThemeData(
         margin: EdgeInsets.zero,
         elevation: 0,
@@ -164,7 +175,41 @@ abstract final class LifeGachaTheme {
         style: FilledButton.styleFrom(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+          textStyle: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w700),
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+          textStyle: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w700),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(99),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: colorScheme.surface.withValues(alpha: 0.92),
+        indicatorColor: colorScheme.primaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return GoogleFonts.beVietnamPro(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+            size: 24,
+          );
+        }),
       ),
     );
   }

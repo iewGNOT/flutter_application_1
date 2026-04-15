@@ -20,6 +20,11 @@ final class RarityDistributionPolicy {
   }
 
   RewardRarity roll(RandomIntSource randomIntSource) {
+    if (config.totalWeight <= 0) {
+      throw StateError(
+        'Cannot roll: total rarity weight is zero or negative.',
+      );
+    }
     return rarityForRoll(randomIntSource.nextInt(config.totalWeight));
   }
 

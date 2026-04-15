@@ -19,6 +19,19 @@ final class _GachaDrawPageState extends ConsumerState<GachaDrawPage> {
   String? _lastPresentedResultKey;
 
   @override
+  void initState() {
+    super.initState();
+    // Clear any stale feedback from a previous session so the page always
+    // starts with a clean state when navigated to.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(gachaControllerProvider).clearFeedback();
+        ref.read(gachaControllerProvider).clearLastResults();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = ref.read(gachaControllerProvider);
     final stateAsync = ref.watch(gachaViewStateProvider);

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/di/use_case_providers.dart';
+import '../../../../core/error/app_failure.dart';
 import '../../domain/dashboard_summary.dart';
 
 final dashboardControllerProvider = Provider<DashboardController>((ref) {
@@ -20,7 +21,8 @@ final class DashboardController {
     final result = await _ref.read(getDashboardSummaryUseCaseProvider).call();
     final summary = result.valueOrNull;
     if (summary == null) {
-      throw result.failureOrNull!;
+      throw result.failureOrNull ??
+          const PersistenceFailure('Failed to load dashboard.');
     }
 
     return DashboardViewState.fromSummary(summary);

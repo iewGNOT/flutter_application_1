@@ -124,7 +124,7 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
       isScrollControlled: true,
       builder: (context) => const TaskEditorSheet(),
     );
-    if (result == null) {
+    if (!mounted || result == null) {
       return;
     }
 
@@ -143,7 +143,7 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
         submitLabel: 'Save changes',
       ),
     );
-    if (result == null) {
+    if (!mounted || result == null) {
       return;
     }
 
@@ -177,7 +177,7 @@ final class _TasksPageState extends ConsumerState<TasksPage> {
         ],
       ),
     );
-    if (shouldDelete != true) {
+    if (!mounted || shouldDelete != true) {
       return;
     }
 

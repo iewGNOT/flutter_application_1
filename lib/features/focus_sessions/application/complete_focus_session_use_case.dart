@@ -451,6 +451,9 @@ int _calculateElapsedSeconds(FocusSession session, DateTime now) {
   final additionalSeconds = now
       .difference(session.lastStateChangedAt)
       .inSeconds;
-  return session.actualElapsedSeconds +
-      (additionalSeconds < 0 ? 0 : additionalSeconds);
+  // Clamp to a 24-hour ceiling to guard against clock skew or system time
+  // adjustments producing unrealistically large elapsed values.
+  const maxChunkSeconds = 24 * 60 * 60;
+  final clamped = additionalSeconds.clamp(0, maxChunkSeconds);
+  return session.actualElapsedSeconds + clamped;
 }
