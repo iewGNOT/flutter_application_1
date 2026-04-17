@@ -105,7 +105,7 @@ final class _GachaDrawPageState extends ConsumerState<GachaDrawPage> {
                     ],
                     // ── Odds card ─────────────────────────────────────────
                     const SizedBox(height: 20),
-                    const _OddsCard(),
+                    _OddsCard(rarityOdds: state.rarityOdds),
                   ],
                 ),
               ),
@@ -546,11 +546,36 @@ final class _SummonLogItem extends StatelessWidget {
 // ── Odds card ─────────────────────────────────────────────────────────────────
 
 final class _OddsCard extends StatelessWidget {
-  const _OddsCard();
+  const _OddsCard({required this.rarityOdds});
+
+  final Map<RewardRarity, double> rarityOdds;
+
+  static const _displayOrder = <RewardRarity>[
+    RewardRarity.red,
+    RewardRarity.golden,
+    RewardRarity.purple,
+    RewardRarity.white,
+  ];
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    final rows = <Widget>[];
+    for (final rarity in _displayOrder) {
+      final fraction = rarityOdds[rarity];
+      if (fraction == null) continue;
+      if (rows.isNotEmpty) {
+        rows.add(const SizedBox(height: 10));
+      }
+      rows.add(
+        _OddsRow(
+          label: _rarityDisplayLabel(rarity),
+          color: _rarityDisplayColor(rarity, colorScheme),
+          percent: fraction * 100,
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -573,32 +598,31 @@ final class _OddsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _OddsRow(
-            label: 'Red',
-            color: const Color(0xFFB23D21),
-            percent: 2.5,
-          ),
-          const SizedBox(height: 10),
-          _OddsRow(
-            label: 'Golden',
-            color: const Color(0xFF7D600D),
-            percent: 12.5,
-          ),
-          const SizedBox(height: 10),
-          _OddsRow(
-            label: 'Purple',
-            color: const Color(0xFF7E57C2),
-            percent: 20.0,
-          ),
-          const SizedBox(height: 10),
-          _OddsRow(
-            label: 'White',
-            color: colorScheme.onSurfaceVariant,
-            percent: 65.0,
-          ),
+          ...rows,
         ],
       ),
     );
+  }
+
+  static String _rarityDisplayLabel(RewardRarity rarity) {
+    return switch (rarity) {
+      RewardRarity.red => 'Red',
+      RewardRarity.golden => 'Golden',
+      RewardRarity.purple => 'Purple',
+      RewardRarity.white => 'White',
+    };
+  }
+
+  static Color _rarityDisplayColor(
+    RewardRarity rarity,
+    ColorScheme colorScheme,
+  ) {
+    return switch (rarity) {
+      RewardRarity.red => const Color(0xFFB23D21),
+      RewardRarity.golden => const Color(0xFF7D600D),
+      RewardRarity.purple => const Color(0xFF7E57C2),
+      RewardRarity.white => colorScheme.onSurfaceVariant,
+    };
   }
 }
 
@@ -651,9 +675,9 @@ final class _OddsRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         SizedBox(
-          width: 42,
+          width: 46,
           child: Text(
-            '$percent%',
+            '${percent.toStringAsFixed(1)}%',
             style: GoogleFonts.beVietnamPro(
               fontSize: 12,
               fontWeight: FontWeight.w600,

@@ -133,6 +133,121 @@ void main() {
     );
 
     test(
+      'complete use case returns InvalidFocusSessionDurationFailure when planned '
+      'minutes are below one focus unit and leaves side effects untouched',
+      () async {
+        final clock = FixedClock(DateTime.utc(2026, 4, 16, 10, 2));
+        final focusRepository = InMemoryFocusSessionRepository([
+          _session(
+            id: 'session-sub-unit',
+            taskId: 'task-1',
+            plannedMinutes: 1,
+            status: FocusSessionStatus.active,
+            pauseCount: 0,
+            startedAt: DateTime.utc(2026, 4, 16, 10, 0),
+            lastStateChangedAt: DateTime.utc(2026, 4, 16, 10, 0),
+            actualElapsedSeconds: 0,
+          ),
+        ]);
+        final taskRepository = InMemoryTaskRepository([
+          Task(
+            id: 'task-1',
+            title: 'Learn Drift',
+            category: TaskCategory.study,
+            status: TaskStatus.active,
+            createdAt: DateTime.utc(2026, 4, 16, 9),
+            updatedAt: DateTime.utc(2026, 4, 16, 9),
+          ),
+        ]);
+        final walletRepository = InMemoryWalletRepository();
+        final profileStatsRepository = InMemoryProfileStatsRepository(
+          snapshot: const ProfileStatsSnapshot(
+            completedTasks: 0,
+            completedFocusSessions: 0,
+            accumulatedPoints: 0,
+            characterLevel: 1,
+            streak: Streak(currentStreak: 0, bestStreak: 0),
+          ),
+        );
+        final characterRepository = InMemoryCharacterRepository(
+          CharacterProfile(
+            id: 'character-1',
+            name: 'Hero',
+            level: 1,
+            xp: 0,
+            stamina: 0,
+            intelligence: 0,
+            discipline: 0,
+            creativity: 0,
+            updatedAt: DateTime.utc(2026, 4, 16, 8),
+          ),
+        );
+        final achievementRepository = InMemoryAchievementRepository();
+        final unitOfWork = RecordingUnitOfWork();
+
+        addTearDown(focusRepository.dispose);
+        addTearDown(taskRepository.dispose);
+        addTearDown(walletRepository.dispose);
+        addTearDown(profileStatsRepository.dispose);
+        addTearDown(characterRepository.dispose);
+        addTearDown(achievementRepository.dispose);
+
+        final useCase = CompleteFocusSessionUseCase(
+          focusSessionRepository: focusRepository,
+          focusSessionPolicy: const FocusSessionPolicy(),
+          walletRepository: walletRepository,
+          pointsPolicy: PointsPolicy(const LifeGachaConfig().economy),
+          updateDailyStreakUseCase: UpdateDailyStreakUseCase(
+            profileStatsRepository,
+          ),
+          applyCharacterGrowthUseCase: ApplyCharacterGrowthUseCase(
+            characterRepository: characterRepository,
+            characterGrowthPolicy: CharacterGrowthPolicy(
+              const LifeGachaConfig().characterGrowth,
+            ),
+            clock: clock,
+          ),
+          evaluateAchievementsUseCase: EvaluateAchievementsUseCase(
+            achievementRepository: achievementRepository,
+            achievementPolicy: const AchievementPolicy(),
+            profileStatsRepository: profileStatsRepository,
+            characterRepository: characterRepository,
+          ),
+          taskRepository: taskRepository,
+          idGenerator: SequentialIdGenerator(prefix: 'wallet'),
+          unitOfWork: unitOfWork,
+          clock: clock,
+        );
+
+        final result = await useCase.call();
+        final balance = await walletRepository.getBalance();
+        final streak = await profileStatsRepository.getStreak();
+        final profile = await characterRepository.getProfile();
+        final currentSession = await focusRepository.getCurrentSession();
+
+        expect(result.isFailure, isTrue);
+        expect(
+          result.failureOrNull,
+          isA<InvalidFocusSessionDurationFailure>(),
+        );
+        expect(
+          unitOfWork.runInTransactionCalls,
+          0,
+          reason: 'Gating must occur before the transaction starts.',
+        );
+        expect(balance.valueOrNull, 0);
+        expect(streak.valueOrNull!.currentStreak, 0);
+        expect(profile.valueOrNull!.xp, 0);
+        expect(profile.valueOrNull!.intelligence, 0);
+        expect(
+          currentSession.valueOrNull!.status,
+          FocusSessionStatus.active,
+          reason: 'Session stays active when completion is rejected.',
+        );
+      },
+    );
+
+    test(
       'complete use case awards configured points and updates linked progress',
       () async {
         final clock = FixedClock(DateTime.utc(2026, 4, 12, 9, 25));

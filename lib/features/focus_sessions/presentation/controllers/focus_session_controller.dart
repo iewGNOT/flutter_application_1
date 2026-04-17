@@ -8,6 +8,7 @@ import '../../../../app/di/use_case_providers.dart';
 import '../../../../core/config/domain_enums.dart';
 import '../../../../core/error/failure_message_mapper.dart';
 import '../../../../core/result/result.dart';
+import '../../../wallet/domain/points_policy.dart';
 import '../../application/focus_session_runtime_controller.dart';
 import '../../domain/focus_session.dart';
 
@@ -81,6 +82,7 @@ final class FocusSessionController {
           : _ref
                 .read(focusSessionRuntimeStateMachineProvider)
                 .fromDomainStatus(session.status),
+      pointsPolicy: _ref.read(pointsPolicyProvider),
     );
   }
 
@@ -217,13 +219,16 @@ final class FocusSessionController {
   }
 
   FocusSessionViewState placeholderState() {
-    return const FocusSessionViewState(
+    return FocusSessionViewState(
       plannedMinutes: 25,
+      potentialPoints: _ref
+          .read(pointsPolicyProvider)
+          .pointsForValidFocusSession(plannedMinutes: 25),
       pauseUsed: false,
       isRunning: false,
       runtimeState: FocusSessionRuntimeState.idle,
       currentSession: null,
-      recentSessions: <FocusSession>[],
+      recentSessions: const <FocusSession>[],
       isMutating: false,
     );
   }
@@ -281,6 +286,7 @@ final class FocusSessionActionFeedback {
 final class FocusSessionViewState {
   const FocusSessionViewState({
     required this.plannedMinutes,
+    required this.potentialPoints,
     required this.pauseUsed,
     required this.isRunning,
     required this.runtimeState,
@@ -294,9 +300,14 @@ final class FocusSessionViewState {
     required FocusSession? session,
     required List<FocusSession> recentSessions,
     required FocusSessionRuntimeState runtimeState,
+    required PointsPolicy pointsPolicy,
   }) {
+    final plannedMinutes = session?.plannedMinutes ?? 25;
     return FocusSessionViewState(
-      plannedMinutes: session?.plannedMinutes ?? 25,
+      plannedMinutes: plannedMinutes,
+      potentialPoints: pointsPolicy.pointsForValidFocusSession(
+        plannedMinutes: plannedMinutes,
+      ),
       pauseUsed: (session?.pauseCount ?? 0) > 0,
       isRunning: runtimeState == FocusSessionRuntimeState.active,
       runtimeState: runtimeState,
@@ -307,6 +318,7 @@ final class FocusSessionViewState {
   }
 
   final int plannedMinutes;
+  final int potentialPoints;
   final bool pauseUsed;
   final bool isRunning;
   final FocusSessionRuntimeState runtimeState;
@@ -394,6 +406,7 @@ final class FocusSessionViewState {
 
   FocusSessionViewState copyWith({
     int? plannedMinutes,
+    int? potentialPoints,
     bool? pauseUsed,
     bool? isRunning,
     FocusSessionRuntimeState? runtimeState,
@@ -406,6 +419,7 @@ final class FocusSessionViewState {
   }) {
     return FocusSessionViewState(
       plannedMinutes: plannedMinutes ?? this.plannedMinutes,
+      potentialPoints: potentialPoints ?? this.potentialPoints,
       pauseUsed: pauseUsed ?? this.pauseUsed,
       isRunning: isRunning ?? this.isRunning,
       runtimeState: runtimeState ?? this.runtimeState,

@@ -13,6 +13,7 @@ import 'package:life_gacha/features/gacha/presentation/controllers/gacha_control
 import 'package:life_gacha/features/gacha/presentation/pages/gacha_draw_page.dart';
 import 'package:life_gacha/features/reward_cards/application/reward_card_use_cases.dart';
 import 'package:life_gacha/features/reward_cards/domain/reward_card.dart';
+import 'package:life_gacha/features/wallet/application/wallet_use_cases.dart';
 import 'package:life_gacha/features/wallet/domain/wallet_ledger_entry.dart';
 
 import '../../../../support/test_doubles.dart';
@@ -81,6 +82,12 @@ void main() {
             listUnlockedRewardCardsUseCaseProvider.overrideWithValue(
               ListUnlockedRewardCardsUseCase(rewardCardRepository),
             ),
+            watchWalletBalanceUseCaseProvider.overrideWithValue(
+              WatchWalletBalanceUseCase(walletRepository),
+            ),
+            watchRewardCardsUseCaseProvider.overrideWithValue(
+              WatchRewardCardsUseCase(rewardCardRepository),
+            ),
           ],
           child: const MaterialApp(home: GachaDrawPage()),
         ),
@@ -115,6 +122,12 @@ void main() {
                 availableRewardCount: 3,
                 isDrawing: false,
                 lastResults: <GachaDrawResultItem>[],
+                rarityOdds: <RewardRarity, double>{
+                  RewardRarity.red: 1 / 46,
+                  RewardRarity.golden: 5 / 46,
+                  RewardRarity.purple: 10 / 46,
+                  RewardRarity.white: 30 / 46,
+                },
               ),
             ),
           ),
@@ -131,4 +144,67 @@ void main() {
     );
     expect(find.text('Ten draw - 1600 points'), findsOneWidget);
   });
+
+  testWidgets(
+    'gacha page renders rarity odds derived from RarityDistributionPolicy',
+    (tester) async {
+      const config = RarityWeightConfig();
+      final policy = RarityDistributionPolicy(config);
+      final odds = policy.normalizedWeights();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            gachaViewStateProvider.overrideWith(
+              (ref) => AsyncData(
+                GachaViewState(
+                  currentBalance: 400,
+                  singleDrawCost: 160,
+                  tenDrawCost: 1600,
+                  availableRewardCount: 3,
+                  isDrawing: false,
+                  lastResults: const <GachaDrawResultItem>[],
+                  rarityOdds: odds,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(home: GachaDrawPage()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Rarity odds'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      String formatOdds(RewardRarity rarity) =>
+          '${(odds[rarity]! * 100).toStringAsFixed(1)}%';
+
+      expect(
+        find.text(formatOdds(RewardRarity.red)),
+        findsOneWidget,
+        reason: 'Red odds should match policy normalizedWeights',
+      );
+      expect(
+        find.text(formatOdds(RewardRarity.golden)),
+        findsOneWidget,
+        reason: 'Golden odds should match policy normalizedWeights',
+      );
+      expect(
+        find.text(formatOdds(RewardRarity.purple)),
+        findsOneWidget,
+        reason: 'Purple odds should match policy normalizedWeights',
+      );
+      expect(
+        find.text(formatOdds(RewardRarity.white)),
+        findsOneWidget,
+        reason: 'White odds should match policy normalizedWeights',
+      );
+    },
+  );
 }

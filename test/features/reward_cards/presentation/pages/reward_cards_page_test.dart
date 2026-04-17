@@ -49,6 +49,9 @@ void main() {
           listUnlockedRewardCardsUseCaseProvider.overrideWithValue(
             ListUnlockedRewardCardsUseCase(rewardRepository),
           ),
+          watchRewardCardsUseCaseProvider.overrideWithValue(
+            WatchRewardCardsUseCase(rewardRepository),
+          ),
         ],
         child: const MaterialApp(home: RewardCardsPage()),
       ),

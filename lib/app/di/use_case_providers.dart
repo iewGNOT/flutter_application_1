@@ -280,6 +280,12 @@ final listUnlockedRewardCardsUseCaseProvider =
       );
     });
 
+final watchRewardCardsUseCaseProvider = Provider<WatchRewardCardsUseCase>((
+  ref,
+) {
+  return WatchRewardCardsUseCase(ref.watch(rewardCardRepositoryProvider));
+});
+
 final executeSingleDrawUseCaseProvider = Provider<ExecuteSingleDrawUseCase>((
   ref,
 ) {

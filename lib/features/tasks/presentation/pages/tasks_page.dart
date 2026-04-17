@@ -284,7 +284,8 @@ final class _FocusDurationSheet extends StatefulWidget {
 }
 
 final class _FocusDurationSheetState extends State<_FocusDurationSheet> {
-  static const _options = <int>[15, 25, 45, 60];
+  // TEMP: added `5` for demo-night testing (min 1 unit = 20 points). Revert to [15, 25, 45, 60] before merge.
+  static const _options = <int>[5, 15, 25, 45, 60];
 
   int _selectedMinutes = 25;
 

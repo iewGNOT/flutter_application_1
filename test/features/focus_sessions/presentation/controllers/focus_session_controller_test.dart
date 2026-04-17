@@ -57,10 +57,57 @@ void main() {
     expect(runtimeController.ensureStartedCalled, isTrue);
     expect(state?.runtimeState, FocusSessionRuntimeState.paused);
     expect(state?.plannedMinutes, 30);
+    expect(
+      state?.potentialPoints,
+      120,
+      reason: '30 min / 5-min unit * 20 pts = 120 FP',
+    );
     expect(state?.pauseUsed, isTrue);
     expect(state?.hasActiveSession, isTrue);
     expect(state?.recentSessions.length, 1);
   });
+
+  test(
+    'focus session view state exposes default-25min potential points when idle',
+    () async {
+      final repository = InMemoryFocusSessionRepository();
+      final runtimeController = FakeFocusSessionRuntimeController();
+
+      final container = ProviderContainer(
+        overrides: [
+          focusSessionRuntimeControllerProvider.overrideWithValue(
+            runtimeController,
+          ),
+          getActiveFocusSessionUseCaseProvider.overrideWithValue(
+            GetActiveFocusSessionUseCase(repository),
+          ),
+          getRecentFocusSessionsUseCaseProvider.overrideWithValue(
+            GetRecentFocusSessionsUseCase(repository),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
+      addTearDown(runtimeController.dispose);
+
+      final subscription = container.listen(
+        focusSessionViewStateProvider,
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+      await _flushMicrotasks();
+
+      final state = container.read(focusSessionViewStateProvider).asData?.value;
+      expect(state?.hasActiveSession, isFalse);
+      expect(state?.plannedMinutes, 25);
+      expect(
+        state?.potentialPoints,
+        100,
+        reason:
+            'Idle preview must show 25-min default → 5 units × 20 pts = 100 FP',
+      );
+    },
+  );
 
   test(
     'focus session controller forwards start actions to runtime state',

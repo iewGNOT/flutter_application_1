@@ -23,6 +23,8 @@ abstract final class FailureMessageMapper {
       SessionLifecycleViolationFailure() =>
         'The session ended because the app left the foreground.',
       SessionAlreadyCompletedFailure() => 'This session is already complete.',
+      InvalidFocusSessionDurationFailure() =>
+        'Focus sessions must run at least one full focus unit to earn points.',
       RewardCardNotFoundFailure() => 'That reward card was not found.',
       RewardCardAlreadyDrawnFailure() =>
         'That reward card is already unlocked and unavailable for future draws.',

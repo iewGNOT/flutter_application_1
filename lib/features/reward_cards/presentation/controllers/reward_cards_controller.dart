@@ -11,9 +11,14 @@ final rewardCardsControllerProvider = Provider<RewardCardsController>((ref) {
   return RewardCardsController(ref);
 });
 
+final _rewardCardsSignalProvider = StreamProvider<List<Object?>>((ref) {
+  return ref.watch(watchRewardCardsUseCaseProvider).call();
+});
+
 final _rewardCardsBaseStateProvider = FutureProvider<RewardCardsViewState>((
   ref,
 ) {
+  ref.watch(_rewardCardsSignalProvider);
   return ref.read(rewardCardsControllerProvider).load();
 });
 

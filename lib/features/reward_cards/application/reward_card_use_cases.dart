@@ -134,3 +134,11 @@ final class ListUnlockedRewardCardsUseCase {
   Future<Result<List<RewardCard>>> call() =>
       _rewardCardRepository.listUnlocked();
 }
+
+final class WatchRewardCardsUseCase {
+  const WatchRewardCardsUseCase(this._rewardCardRepository);
+
+  final RewardCardRepository _rewardCardRepository;
+
+  Stream<List<RewardCard>> call() => _rewardCardRepository.watchRewardCards();
+}

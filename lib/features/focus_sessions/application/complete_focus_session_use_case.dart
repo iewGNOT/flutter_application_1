@@ -264,12 +264,19 @@ final class CompleteFocusSessionUseCase {
       return Failure(canComplete.failureOrNull!);
     }
 
+    final pointsAwarded = _pointsPolicy.pointsForCompletedSession(
+      currentSession,
+    );
+    if (pointsAwarded <= 0) {
+      return const Failure(InvalidFocusSessionDurationFailure());
+    }
+
     final now = _clock.now().toUtc();
     final completedSession = currentSession.copyWith(
       status: FocusSessionStatus.completed,
       endedAt: now,
       actualElapsedSeconds: _calculateElapsedSeconds(currentSession, now),
-      pointsAwarded: _pointsPolicy.pointsForCompletedSession(currentSession),
+      pointsAwarded: pointsAwarded,
       lastStateChangedAt: now,
     );
 

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
+import '../../../../app/di/app_providers.dart';
 import '../../../../app/di/use_case_providers.dart';
 import '../../../../core/config/domain_enums.dart';
 import '../../../../core/error/failure_message_mapper.dart';
@@ -11,7 +12,17 @@ final gachaControllerProvider = Provider<GachaController>((ref) {
   return GachaController(ref);
 });
 
+final _gachaWalletBalanceSignalProvider = StreamProvider<int>((ref) {
+  return ref.watch(watchWalletBalanceUseCaseProvider).call();
+});
+
+final _gachaRewardCardsSignalProvider = StreamProvider<List<Object?>>((ref) {
+  return ref.watch(watchRewardCardsUseCaseProvider).call();
+});
+
 final _gachaBaseStateProvider = FutureProvider<GachaViewState>((ref) {
+  ref.watch(_gachaWalletBalanceSignalProvider);
+  ref.watch(_gachaRewardCardsSignalProvider);
   return ref.read(gachaControllerProvider).load();
 });
 
@@ -58,7 +69,11 @@ final class GachaController {
       throw previewResult.failureOrNull!;
     }
 
-    return GachaViewState.fromPreview(preview);
+    final rarityOdds = _ref
+        .read(rarityDistributionPolicyProvider)
+        .normalizedWeights();
+
+    return GachaViewState.fromPreview(preview, rarityOdds: rarityOdds);
   }
 
   Future<List<GachaDrawResultItem>?> executeSingleDraw() async {
@@ -127,6 +142,7 @@ final class GachaController {
       availableRewardCount: 0,
       isDrawing: false,
       lastResults: <GachaDrawResultItem>[],
+      rarityOdds: <RewardRarity, double>{},
     );
   }
 
@@ -242,10 +258,14 @@ final class GachaViewState {
     required this.availableRewardCount,
     required this.isDrawing,
     required this.lastResults,
+    required this.rarityOdds,
     this.lastFeedback,
   });
 
-  factory GachaViewState.fromPreview(GachaDrawPreviewState preview) {
+  factory GachaViewState.fromPreview(
+    GachaDrawPreviewState preview, {
+    required Map<RewardRarity, double> rarityOdds,
+  }) {
     return GachaViewState(
       currentBalance: preview.currentBalance,
       singleDrawCost: preview.singleDrawCost,
@@ -253,6 +273,7 @@ final class GachaViewState {
       availableRewardCount: preview.availableRewardCount,
       isDrawing: false,
       lastResults: const <GachaDrawResultItem>[],
+      rarityOdds: Map<RewardRarity, double>.unmodifiable(rarityOdds),
     );
   }
 
@@ -262,6 +283,7 @@ final class GachaViewState {
   final int availableRewardCount;
   final bool isDrawing;
   final List<GachaDrawResultItem> lastResults;
+  final Map<RewardRarity, double> rarityOdds;
   final GachaActionFeedback? lastFeedback;
 
   bool get canSingleDraw =>
@@ -276,6 +298,7 @@ final class GachaViewState {
     int? availableRewardCount,
     bool? isDrawing,
     List<GachaDrawResultItem>? lastResults,
+    Map<RewardRarity, double>? rarityOdds,
     GachaActionFeedback? lastFeedback,
     bool clearLastFeedback = false,
   }) {
@@ -286,6 +309,7 @@ final class GachaViewState {
       availableRewardCount: availableRewardCount ?? this.availableRewardCount,
       isDrawing: isDrawing ?? this.isDrawing,
       lastResults: lastResults ?? this.lastResults,
+      rarityOdds: rarityOdds ?? this.rarityOdds,
       lastFeedback: clearLastFeedback
           ? null
           : lastFeedback ?? this.lastFeedback,

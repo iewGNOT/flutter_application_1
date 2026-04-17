@@ -160,8 +160,7 @@ final class _StatsGrid extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final completedCount =
         state.recentSessions.where((s) => s.isTerminal).length;
-    final plannedMinutes =
-        state.currentSession?.plannedMinutes ?? state.plannedMinutes;
+    final potentialPoints = state.potentialPoints;
 
     return Row(
       children: [
@@ -238,7 +237,7 @@ final class _StatsGrid extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      '+$plannedMinutes',
+                      '+$potentialPoints',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,

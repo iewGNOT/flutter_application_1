@@ -11,6 +11,7 @@ import 'package:life_gacha/features/gacha/domain/rarity_distribution_policy.dart
 import 'package:life_gacha/features/gacha/presentation/controllers/gacha_controller.dart';
 import 'package:life_gacha/features/reward_cards/application/reward_card_use_cases.dart';
 import 'package:life_gacha/features/reward_cards/domain/reward_card.dart';
+import 'package:life_gacha/features/wallet/application/wallet_use_cases.dart';
 import 'package:life_gacha/features/wallet/domain/wallet_ledger_entry.dart';
 
 import '../../../../support/test_doubles.dart';
@@ -73,6 +74,12 @@ void main() {
           ),
           listUnlockedRewardCardsUseCaseProvider.overrideWithValue(
             ListUnlockedRewardCardsUseCase(rewardCardRepository),
+          ),
+          watchWalletBalanceUseCaseProvider.overrideWithValue(
+            WatchWalletBalanceUseCase(walletRepository),
+          ),
+          watchRewardCardsUseCaseProvider.overrideWithValue(
+            WatchRewardCardsUseCase(rewardCardRepository),
           ),
         ],
       );
@@ -170,6 +177,12 @@ void main() {
           listUnlockedRewardCardsUseCaseProvider.overrideWithValue(
             ListUnlockedRewardCardsUseCase(rewardCardRepository),
           ),
+          watchWalletBalanceUseCaseProvider.overrideWithValue(
+            WatchWalletBalanceUseCase(walletRepository),
+          ),
+          watchRewardCardsUseCaseProvider.overrideWithValue(
+            WatchRewardCardsUseCase(rewardCardRepository),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -252,6 +265,12 @@ void main() {
         listUnlockedRewardCardsUseCaseProvider.overrideWithValue(
           ListUnlockedRewardCardsUseCase(rewardCardRepository),
         ),
+        watchWalletBalanceUseCaseProvider.overrideWithValue(
+          WatchWalletBalanceUseCase(walletRepository),
+        ),
+        watchRewardCardsUseCaseProvider.overrideWithValue(
+          WatchRewardCardsUseCase(rewardCardRepository),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -276,8 +295,151 @@ void main() {
       'Ten draw complete.',
     );
   });
+
+  test(
+    'gacha view state auto-refreshes when wallet balance changes externally',
+    () async {
+      final now = DateTime.utc(2026, 4, 12, 10);
+      final walletRepository = InMemoryWalletRepository([
+        WalletLedgerEntry(
+          id: 'wallet-seed',
+          eventType: WalletEventType.manualAdjustment,
+          deltaPoints: 100,
+          referenceId: 'seed',
+          createdAt: now,
+        ),
+      ]);
+      final rewardCardRepository = InMemoryRewardCardRepository([
+        RewardCard(
+          id: 'reward-a',
+          content: 'Buy a book',
+          rarity: RewardRarity.white,
+          status: RewardCardStatus.available,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+      final config = const LifeGachaConfig();
+
+      final container = ProviderContainer(
+        overrides: [
+          getDrawPreviewStateUseCaseProvider.overrideWithValue(
+            GetDrawPreviewStateUseCase(
+              walletRepository: walletRepository,
+              rewardCardRepository: rewardCardRepository,
+              drawCostPolicy: DrawCostPolicy(config.economy),
+            ),
+          ),
+          watchWalletBalanceUseCaseProvider.overrideWithValue(
+            WatchWalletBalanceUseCase(walletRepository),
+          ),
+          watchRewardCardsUseCaseProvider.overrideWithValue(
+            WatchRewardCardsUseCase(rewardCardRepository),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(walletRepository.dispose);
+      addTearDown(rewardCardRepository.dispose);
+
+      final subscription = container.listen(gachaViewStateProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await _flushMicrotasks();
+
+      expect(
+        container.read(gachaViewStateProvider).asData?.value.currentBalance,
+        100,
+      );
+
+      await walletRepository.appendLedgerEntry(
+        WalletLedgerEntry(
+          id: 'wallet-bonus',
+          eventType: WalletEventType.focusSessionCompleted,
+          deltaPoints: 400,
+          referenceId: 'focus-1',
+          createdAt: now.add(const Duration(minutes: 5)),
+        ),
+      );
+      await _flushMicrotasks();
+
+      expect(
+        container.read(gachaViewStateProvider).asData?.value.currentBalance,
+        500,
+        reason: 'Wallet stream should trigger gacha view state re-evaluation',
+      );
+    },
+  );
+
+  test(
+    'gacha view state auto-refreshes when reward card inventory changes',
+    () async {
+      final now = DateTime.utc(2026, 4, 12, 10);
+      final walletRepository = InMemoryWalletRepository();
+      final rewardCardRepository = InMemoryRewardCardRepository();
+      final config = const LifeGachaConfig();
+
+      final container = ProviderContainer(
+        overrides: [
+          getDrawPreviewStateUseCaseProvider.overrideWithValue(
+            GetDrawPreviewStateUseCase(
+              walletRepository: walletRepository,
+              rewardCardRepository: rewardCardRepository,
+              drawCostPolicy: DrawCostPolicy(config.economy),
+            ),
+          ),
+          watchWalletBalanceUseCaseProvider.overrideWithValue(
+            WatchWalletBalanceUseCase(walletRepository),
+          ),
+          watchRewardCardsUseCaseProvider.overrideWithValue(
+            WatchRewardCardsUseCase(rewardCardRepository),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(walletRepository.dispose);
+      addTearDown(rewardCardRepository.dispose);
+
+      final subscription = container.listen(gachaViewStateProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await _flushMicrotasks();
+
+      expect(
+        container
+            .read(gachaViewStateProvider)
+            .asData
+            ?.value
+            .availableRewardCount,
+        0,
+      );
+
+      await rewardCardRepository.save(
+        RewardCard(
+          id: 'reward-new',
+          content: 'A new reward',
+          rarity: RewardRarity.white,
+          status: RewardCardStatus.available,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await _flushMicrotasks();
+
+      expect(
+        container
+            .read(gachaViewStateProvider)
+            .asData
+            ?.value
+            .availableRewardCount,
+        1,
+        reason:
+            'Reward card stream should trigger gacha view state re-evaluation',
+      );
+    },
+  );
 }
 
-Future<void> _flushMicrotasks() {
-  return Future<void>.delayed(Duration.zero);
+Future<void> _flushMicrotasks() async {
+  for (var i = 0; i < 4; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
 }

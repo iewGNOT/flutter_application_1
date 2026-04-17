@@ -69,6 +69,13 @@ final class SessionAlreadyCompletedFailure extends AppFailure {
     : super('This focus session has already been completed.');
 }
 
+final class InvalidFocusSessionDurationFailure extends AppFailure {
+  const InvalidFocusSessionDurationFailure()
+    : super(
+        'Focus session is shorter than one focus unit; it cannot award points.',
+      );
+}
+
 final class RewardCardNotFoundFailure extends AppFailure {
   const RewardCardNotFoundFailure()
     : super('The requested reward card no longer exists.');

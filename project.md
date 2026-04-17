@@ -85,10 +85,11 @@ LifeGacha is an offline-first Flutter productivity RPG/gacha MVP. The product co
   - focus session runtime (pause/resume/stop/complete)
   - gacha draw (preview, single, ten-draw, result flows)
 - shared app-level async/loading/error/empty widgets under `lib/app/widgets`
-- full test suite: 48 tests, all passing
+- full test suite: 54 tests, all passing
 - post-Phase 3 bug fix pass (navigation, feedback, timer rebuild, init errors)
 - Stitch UI redesign across all six screens (2026-04-13)
 - code review bug fix pass: 10 bugs fixed (2026-04-15)
+- demo-prep bug fix pass: 5 issues fixed (2026-04-16)
 
 ### Partially done
 - theme and routing are usable and intentionally minimal
@@ -292,17 +293,56 @@ Inspect these first when resuming work:
 - `test/features/gacha/presentation/pages/gacha_draw_page_test.dart`
 - `test/features/focus_sessions/presentation/controllers/focus_session_controller_test.dart`
 - `test/features/focus_sessions/presentation/pages/focus_session_page_test.dart`
+- `test/features/reward_cards/presentation/controllers/reward_cards_controller_test.dart`
+- `test/features/reward_cards/presentation/pages/reward_cards_page_test.dart`
 - `test/integration/phase3_mvp_flows_test.dart`
 - `test/widget_test.dart`
 - Shared fakes: `test/support/test_doubles.dart`
 
 ### Current verified status
-- `flutter analyze`: 0 issues (2026-04-15)
-- `flutter test`: 48/48 passed (2026-04-15)
+- `flutter analyze`: 0 issues (2026-04-16)
+- `flutter test`: 54/54 passed (2026-04-16)
 
 ---
 
 ## 11. Update Log
+
+### 2026-04-16 — Demo-prep bug fix pass
+
+During demo walkthrough on 2026-04-16, five real bugs were discovered and properly fixed (not quick-patched). See `docs/KNOWN_ISSUES.md` for full root-cause analysis of each. All fixes covered by tests.
+
+1. **ISSUE-002 — Sub-unit focus-session completion crash**
+   - `lib/features/focus_sessions/application/complete_focus_session_use_case.dart` — Returns `InvalidFocusSessionDurationFailure` when `pointsForValidFocusSession(plannedMinutes)` would be `0` (i.e., `plannedMinutes < focusUnitMinutes`), instead of letting the domain assertion `pointsAwarded > 0` crash the app.
+   - `lib/core/error/app_failure.dart` + `failure_message_mapper.dart` — New typed failure with a user-friendly message.
+   - Keeps the "completed ⇒ awarded points" semantic intact and pushes validation to the use case.
+
+2. **ISSUE-001 — Potential reward showed minutes instead of points**
+   - `lib/features/focus_sessions/presentation/pages/focus_session_page.dart:241` — UI now reads `state.potentialPoints` (computed by controller via `PointsPolicy`) instead of hardcoding `plannedMinutes`. A 25-min session now correctly shows `+100 FP` to match the wallet credit.
+   - `lib/features/focus_sessions/presentation/controllers/focus_session_controller.dart` — Added `potentialPoints` to `FocusSessionViewState`, populated from `PointsPolicy`.
+
+3. **ISSUE-003 — Gacha page did not auto-refresh wallet balance**
+4. **ISSUE-005 — Rewards page did not auto-refresh after gacha draw**
+   - Root cause for both: cross-feature Riverpod provider invalidation was missing. Fixed by making the base view-state providers `ref.watch` stream signals backed by repository `watch*` streams, so any write to wallet / reward-card persistence auto-propagates to every feature that reads them.
+   - `lib/features/reward_cards/application/reward_card_use_cases.dart` — Added `WatchRewardCardsUseCase` wrapping `RewardCardRepository.watchRewardCards()`.
+   - `lib/app/di/use_case_providers.dart` — Added `watchRewardCardsUseCaseProvider`.
+   - `lib/features/gacha/presentation/controllers/gacha_controller.dart` — `_gachaBaseStateProvider` now watches wallet-balance and reward-cards stream signals.
+   - `lib/features/reward_cards/presentation/controllers/reward_cards_controller.dart` — `_rewardCardsBaseStateProvider` now watches a reward-cards stream signal.
+   - Tests added: auto-refresh on wallet change, auto-refresh on reward-card inventory change (gacha controller); external-save auto-refresh (reward cards controller).
+
+5. **ISSUE-004 — Rarity odds were hardcoded in UI**
+   - `lib/features/gacha/presentation/pages/gacha_draw_page.dart` — `_OddsCard` now reads odds from `state.rarityOdds` (seeded by controller from `RarityDistributionPolicy.normalizedWeights()`), formatted to 1 decimal place. Displayed odds (Red 2.2% / Golden 10.9% / Purple 21.7% / White 65.2%) now exactly match the roll distribution from the configured weights (1/5/10/30).
+   - `lib/features/gacha/presentation/controllers/gacha_controller.dart` — `GachaViewState` has a new `rarityOdds: Map<RewardRarity, double>` field.
+   - Test added: UI-rendered odds assert against `RarityDistributionPolicy.normalizedWeights()` directly, so UI can never drift from policy again.
+
+**TEMP-001 (intentionally left in place):** `lib/features/tasks/presentation/pages/tasks_page.dart:288` still has `static const _options = <int>[5, 15, 25, 45, 60];` with a `// TEMP:` comment. The 5-min option supports demo rehearsal on 2026-04-17. Revert to `[15, 25, 45, 60]` after the demo, before merging `ui/stitch-design` to main.
+
+New tracking docs:
+- `docs/KNOWN_ISSUES.md` — root-cause analysis for each of the 5 issues + TEMP-001 revert plan
+- `docs/DEMO_TEST_PLAN.md` — demo walkthrough script
+
+Verification:
+- `flutter analyze`: 0 issues
+- `flutter test`: 54/54 passed
 
 ### 2026-04-15 — Code review bug fix pass
 
