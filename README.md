@@ -7,7 +7,9 @@
 ![Riverpod](https://img.shields.io/badge/Riverpod-State%20Management-40C4FF?style=for-the-badge)
 ![Offline First](https://img.shields.io/badge/Offline--First-Encrypted%20Local%20Data-2E7D32?style=for-the-badge)
 
-![LifeGacha Preview](docs/images/hero.png)
+<p align="center">
+  <img src="docs/images/hero.png" alt="LifeGacha Preview" width="720">
+</p>
 
 LifeGacha makes productivity feel like progression. Complete real work, earn focus points, unlock self-defined rewards, pull from a gacha pool, build streaks, and grow a character over time - all stored locally with an encrypted offline-first database.
 
@@ -15,12 +17,12 @@ LifeGacha makes productivity feel like progression. Complete real work, earn foc
 
 | Dashboard | Focus |
 | --- | --- |
-| ![](docs/images/dashboard.png) | ![](docs/images/focus.png) |
+| <img src="docs/images/dashboard.png" alt="Dashboard" width="360"> | <img src="docs/images/focus.png" alt="Focus" width="360"> |
 | Track points, streaks, and daily progress. | Run focused work sessions and earn points. |
 
 | Gacha | Rewards |
 | --- | --- |
-| ![](docs/images/gacha.png) | ![](docs/images/rewards.png) |
+| <img src="docs/images/gacha.png" alt="Gacha" width="360"> | <img src="docs/images/rewards.png" alt="Rewards" width="360"> |
 | Spend points to draw rewards from your own pool. | Create collectible reward cards with rarity tiers. |
 
 ## Architecture
